@@ -39,7 +39,7 @@ files: see [MIGRATION.md](MIGRATION.md).
 
 ```bash
 composer patches:security                        # what is missing for this install?
-#  APSB26-153  October 13, 2026, priority 2 — affects Magento Open Source core ("2.4.7-p10 and earlier")
+#  APSB26-153  October 13, 2026, priority 2 — affects Magento Open Source core ("2.4.7-2026-sep and earlier")
 #    download: https://experienceleague.adobe.com/…/ka-49323
 #    file:     the one for 2.4.7-p10 / 2.4.7-2026-oct (isolated patch)
 #    then:     composer patches:security <download> --id=APSB26-153
