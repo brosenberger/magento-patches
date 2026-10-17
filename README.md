@@ -181,8 +181,11 @@ are kept in sync.
 - `magento/quality-patches` is only needed for `patches:quality` (or pass `--qpt-path` to a clone of
   github.com/magento/quality-patches).
 - Bulletin data comes from Adobe's public pages on helpx.adobe.com, because there is no API. If the
-  layout changes you get an error instead of a false "nothing missing"; `--bulletin=APSB26-153`
-  checks specific bulletins.
+  layout changes, a bulletin cannot be fetched, or (offline) nothing is stored yet, you get an error
+  naming the bulletins that could not be checked — never a false "nothing missing";
+  `--bulletin=APSB26-153` checks specific bulletins. As of October 2026 helpx redirects bulletins to
+  adobe.com/trust, which answers HTTP 403 to most clients; register downloads by hand
+  (`patches:security <file> --id=…`) until that is resolved.
 - Downloads behind Adobe login (Commerce ≤ 2.4.6 needs Composer keys) stay a manual step; the
   command only suggests the link.
 - A hand edit in `vendor/` that makes a patch *fit* (rather than already contain it) is not seen
