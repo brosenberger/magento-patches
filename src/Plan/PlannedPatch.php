@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Brocode\MagentoPatches\Plan;
+namespace BroCode\MagentoPatches\Plan;
 
 final class PlannedPatch
 {

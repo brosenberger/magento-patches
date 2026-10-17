@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Brocode\MagentoPatches\Store;
+namespace BroCode\MagentoPatches\Store;
 
-use Brocode\MagentoPatches\Source\Bulletin;
+use BroCode\MagentoPatches\Source\Bulletin;
 
 /**
  * patches/downloads/<ID>/ — the files exactly as downloaded from Adobe, committed with the

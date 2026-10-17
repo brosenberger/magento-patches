@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Brocode\MagentoPatches\Command;
+namespace BroCode\MagentoPatches\Command;
 
-use Brocode\MagentoPatches\Runtime\Context;
-use Brocode\MagentoPatches\Source\Bulletin;
-use Brocode\MagentoPatches\Source\BulletinCatalog;
-use Brocode\MagentoPatches\Source\BulletinRepository;
-use Brocode\MagentoPatches\Source\BulletinStore;
-use Brocode\MagentoPatches\Source\Fetcher;
-use Brocode\MagentoPatches\Source\IsolatedPatchFiles;
-use Brocode\MagentoPatches\Source\SecurityAdvisor;
-use Brocode\MagentoPatches\Store\DownloadManifest;
-use Brocode\MagentoPatches\Store\Downloads;
-use Brocode\MagentoPatches\Store\Label;
+use BroCode\MagentoPatches\Runtime\Context;
+use BroCode\MagentoPatches\Source\Bulletin;
+use BroCode\MagentoPatches\Source\BulletinCatalog;
+use BroCode\MagentoPatches\Source\BulletinRepository;
+use BroCode\MagentoPatches\Source\BulletinStore;
+use BroCode\MagentoPatches\Source\Fetcher;
+use BroCode\MagentoPatches\Source\IsolatedPatchFiles;
+use BroCode\MagentoPatches\Source\SecurityAdvisor;
+use BroCode\MagentoPatches\Store\DownloadManifest;
+use BroCode\MagentoPatches\Store\Downloads;
+use BroCode\MagentoPatches\Store\Label;
 use Composer\IO\IOInterface;
 use RuntimeException;
 use Symfony\Component\Console\Input\InputArgument;

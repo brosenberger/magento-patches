@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Brocode\MagentoPatches\Plan;
+namespace BroCode\MagentoPatches\Plan;
 
-use Brocode\MagentoPatches\Patch\Stage;
+use BroCode\MagentoPatches\Patch\Stage;
 
 final class Plan
 {

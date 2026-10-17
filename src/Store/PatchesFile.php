@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Brocode\MagentoPatches\Store;
+namespace BroCode\MagentoPatches\Store;
 
 use RuntimeException;
 
@@ -104,23 +104,23 @@ final class PatchesFile
      */
     public function markCovered(string $id, string $note): void
     {
-        $this->data['brocode-magento-patches']['covered'][\Brocode\MagentoPatches\Source\Bulletin::normalizeId($id)] = $note;
+        $this->data['brocode-magento-patches']['covered'][\BroCode\MagentoPatches\Source\Bulletin::normalizeId($id)] = $note;
         ksort($this->data['brocode-magento-patches']['covered']);
     }
 
     public function isCovered(string $id): bool
     {
-        return isset($this->data['brocode-magento-patches']['covered'][\Brocode\MagentoPatches\Source\Bulletin::normalizeId($id)]);
+        return isset($this->data['brocode-magento-patches']['covered'][\BroCode\MagentoPatches\Source\Bulletin::normalizeId($id)]);
     }
 
     public function coveredNote(string $id): ?string
     {
-        return $this->data['brocode-magento-patches']['covered'][\Brocode\MagentoPatches\Source\Bulletin::normalizeId($id)] ?? null;
+        return $this->data['brocode-magento-patches']['covered'][\BroCode\MagentoPatches\Source\Bulletin::normalizeId($id)] ?? null;
     }
 
     public function unmarkCovered(string $id): void
     {
-        unset($this->data['brocode-magento-patches']['covered'][\Brocode\MagentoPatches\Source\Bulletin::normalizeId($id)]);
+        unset($this->data['brocode-magento-patches']['covered'][\BroCode\MagentoPatches\Source\Bulletin::normalizeId($id)]);
         if (($this->data['brocode-magento-patches']['covered'] ?? null) === []) {
             unset($this->data['brocode-magento-patches']['covered']);
         }

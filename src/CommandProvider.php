@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Brocode\MagentoPatches;
+namespace BroCode\MagentoPatches;
 
-use Brocode\MagentoPatches\Command\AddCommand;
-use Brocode\MagentoPatches\Command\QualityCommand;
-use Brocode\MagentoPatches\Command\RemoveCommand;
-use Brocode\MagentoPatches\Command\SecurityCommand;
-use Brocode\MagentoPatches\Command\StatusCommand;
-use Brocode\MagentoPatches\Command\SyncCommand;
-use Brocode\MagentoPatches\Command\UpgradeCommand;
+use BroCode\MagentoPatches\Command\AddCommand;
+use BroCode\MagentoPatches\Command\QualityCommand;
+use BroCode\MagentoPatches\Command\RemoveCommand;
+use BroCode\MagentoPatches\Command\SecurityCommand;
+use BroCode\MagentoPatches\Command\StatusCommand;
+use BroCode\MagentoPatches\Command\SyncCommand;
+use BroCode\MagentoPatches\Command\UpgradeCommand;
 use Composer\Plugin\Capability\CommandProvider as CommandProviderCapability;
 
 final class CommandProvider implements CommandProviderCapability

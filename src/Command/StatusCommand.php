@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Brocode\MagentoPatches\Command;
+namespace BroCode\MagentoPatches\Command;
 
-use Brocode\MagentoPatches\Patch\DiffParser;
-use Brocode\MagentoPatches\Patch\Stage;
-use Brocode\MagentoPatches\Patch\Validator;
-use Brocode\MagentoPatches\Runtime\LegacySetup;
-use Brocode\MagentoPatches\Source\QualityPatches;
-use Brocode\MagentoPatches\Store\Label;
+use BroCode\MagentoPatches\Patch\DiffParser;
+use BroCode\MagentoPatches\Patch\Stage;
+use BroCode\MagentoPatches\Patch\Validator;
+use BroCode\MagentoPatches\Runtime\LegacySetup;
+use BroCode\MagentoPatches\Source\QualityPatches;
+use BroCode\MagentoPatches\Store\Label;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -87,7 +87,7 @@ final class StatusCommand extends AbstractPatchCommand
         }
 
         // Stored downloads vs. the sha256 recorded when they were registered.
-        $manifest = new \Brocode\MagentoPatches\Store\DownloadManifest($ctx->downloads->manifestPath());
+        $manifest = new \BroCode\MagentoPatches\Store\DownloadManifest($ctx->downloads->manifestPath());
         $ids = array_values(array_filter(array_unique(array_merge(array_keys($ctx->downloads->all()), $manifest->ids())), static fn (string $id): bool => $id !== ''));
         if ($ids !== []) {
             $io->write(sprintf("\n<comment>Downloads</comment> (%s)", $info->relative($ctx->downloads->dir)));
@@ -116,7 +116,7 @@ final class StatusCommand extends AbstractPatchCommand
      * @param list<array{package: string, label: string, url: string}> $entries
      * @return array<int, string> entry index => applied|missing|not-installed|unchecked
      */
-    private function verify(\Brocode\MagentoPatches\Runtime\Context $ctx, array $entries): array
+    private function verify(\BroCode\MagentoPatches\Runtime\Context $ctx, array $entries): array
     {
         $results = [];
         $byPackage = [];

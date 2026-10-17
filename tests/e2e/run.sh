@@ -75,15 +75,15 @@ rm -f patches/security-bulletins.json
 out=$(run patches:security --offline); code=$?; check "bulletins: no stored data offline → error, not a false all-clear" '[ $code -eq 1 ] && grep -q "No bulletin data" <<<"$out"'
 php -r '
 require "vendor/autoload.php";
-$b = (new Brocode\MagentoPatches\Source\BulletinParser())->parse("APSB26-146", "https://helpx.adobe.com/security/products/magento/apsb26-146.html", file_get_contents($argv[1]));
-$s = new Brocode\MagentoPatches\Source\BulletinStore("patches/security-bulletins.json");
+$b = (new BroCode\MagentoPatches\Source\BulletinParser())->parse("APSB26-146", "https://helpx.adobe.com/security/products/magento/apsb26-146.html", file_get_contents($argv[1]));
+$s = new BroCode\MagentoPatches\Source\BulletinStore("patches/security-bulletins.json");
 $s->setIndex(["APSB26-146"]); $s->put($b); $s->save();' "$PLUGIN/tests/unit/apsb-sample.html"
 out=$(run patches:security); code=$?
 check "bulletins: fresh stored index + stored bulletin → nothing fetched" '! grep -qi "could not fetch" <<<"$out" && grep -q "1 stored" <<<"$out"'
 check "bulletins: monthly bound vs. installed release date → missing (exit 2)" '[ $code -eq 2 ] && grep -q EXPLOITED <<<"$out" && grep -q ka-49999 <<<"$out"'
-php -r 'require "vendor/autoload.php"; $s = new Brocode\MagentoPatches\Source\BulletinStore("patches/security-bulletins.json"); $s->setIndex(["APSB26-146", "APSB26-147"]); $s->save();'
+php -r 'require "vendor/autoload.php"; $s = new BroCode\MagentoPatches\Source\BulletinStore("patches/security-bulletins.json"); $s->setIndex(["APSB26-146", "APSB26-147"]); $s->save();'
 out=$(run patches:security --offline); check "bulletins: a bulletin that cannot be read is reported as unknown" 'grep -q "Could not check APSB26-147" <<<"$out"'
-php -r 'require "vendor/autoload.php"; $s = new Brocode\MagentoPatches\Source\BulletinStore("patches/security-bulletins.json"); $s->setIndex(["APSB26-146"]); $s->save();'
+php -r 'require "vendor/autoload.php"; $s = new BroCode\MagentoPatches\Source\BulletinStore("patches/security-bulletins.json"); $s->setIndex(["APSB26-146"]); $s->save();'
 out=$(run patches:security --offline --show=APSB26-146); check "bulletins: --show from stored data" 'grep -q "affected — MISSING" <<<"$out" && grep -q "2.4.8-2026-aug and earlier" <<<"$out"'
 
 # --- downloads tracked against Adobe (fake KB + repo.magento.com over HTTP) --------------------------
@@ -95,8 +95,8 @@ source "$PLUGIN/tests/e2e/www.sh" "$WORK/www" "$BASE"
 kb1 2026-10-13; bulletin995
 php -r '
 require "vendor/autoload.php";
-$b = (new Brocode\MagentoPatches\Source\BulletinParser())->parse("APSB26-995", $argv[2], file_get_contents($argv[1]));
-$s = new Brocode\MagentoPatches\Source\BulletinStore("patches/security-bulletins.json");
+$b = (new BroCode\MagentoPatches\Source\BulletinParser())->parse("APSB26-995", $argv[2], file_get_contents($argv[1]));
+$s = new BroCode\MagentoPatches\Source\BulletinStore("patches/security-bulletins.json");
 $s->put($b); $s->save();' "$WORK/www/security/apsb26-995.html" "$BASE/security/apsb26-995.html"
 MAILER=vendor/magento/module-email/Model/Mailer.php
 MANIFEST=patches/downloads/manifest.json

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Brocode\MagentoPatches\Patch;
+namespace BroCode\MagentoPatches\Patch;
 
-use Brocode\MagentoPatches\Magento\MagentoInfo;
+use BroCode\MagentoPatches\Magento\MagentoInfo;
 
 /**
  * Maps a project-relative file path (as used in Adobe/QPT patches) to the installed

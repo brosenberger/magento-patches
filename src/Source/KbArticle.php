@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Brocode\MagentoPatches\Source;
+namespace BroCode\MagentoPatches\Source;
 
 use DOMDocument;
 use DOMElement;

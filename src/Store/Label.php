@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Brocode\MagentoPatches\Store;
+namespace BroCode\MagentoPatches\Store;
 
 /**
  * Descriptions written into patches.json: "[SEC] APSB26-153: VULN-39341_2.4.7-p10.patch".

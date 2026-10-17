@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Brocode\MagentoPatches\Source;
+namespace BroCode\MagentoPatches\Source;
 
-use Brocode\MagentoPatches\Magento\MagentoInfo;
-use Brocode\MagentoPatches\Magento\MagentoVersion;
-use Brocode\MagentoPatches\Plan\Plan;
+use BroCode\MagentoPatches\Magento\MagentoInfo;
+use BroCode\MagentoPatches\Magento\MagentoVersion;
+use BroCode\MagentoPatches\Plan\Plan;
 use Composer\Semver\Constraint\Constraint;
 use Composer\Semver\VersionParser;
 use RuntimeException;

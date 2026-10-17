@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Brocode\MagentoPatches\Patch;
+namespace BroCode\MagentoPatches\Patch;
 
 final class Hunk
 {

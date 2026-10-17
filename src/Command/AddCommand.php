@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Brocode\MagentoPatches\Command;
+namespace BroCode\MagentoPatches\Command;
 
-use Brocode\MagentoPatches\Plan\Source;
-use Brocode\MagentoPatches\Store\Label;
+use BroCode\MagentoPatches\Plan\Source;
+use BroCode\MagentoPatches\Store\Label;
 use RuntimeException;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;

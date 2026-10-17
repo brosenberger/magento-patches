@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Brocode\MagentoPatches\Patch;
+namespace BroCode\MagentoPatches\Patch;
 
 /**
  * The part of a patch that touches exactly one file.

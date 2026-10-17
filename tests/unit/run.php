@@ -8,16 +8,16 @@
 declare(strict_types=1);
 
 spl_autoload_register(static function (string $class): void {
-    $prefix = 'Brocode\\MagentoPatches\\';
+    $prefix = 'BroCode\\MagentoPatches\\';
     if (str_starts_with($class, $prefix)) {
         require __DIR__ . '/../../src/' . str_replace('\\', '/', substr($class, strlen($prefix))) . '.php';
     }
 });
 
-use Brocode\MagentoPatches\Magento\MagentoVersion as V;
-use Brocode\MagentoPatches\Patch\DiffParser;
-use Brocode\MagentoPatches\Source\BulletinParser;
-use Brocode\MagentoPatches\Store\Label;
+use BroCode\MagentoPatches\Magento\MagentoVersion as V;
+use BroCode\MagentoPatches\Patch\DiffParser;
+use BroCode\MagentoPatches\Source\BulletinParser;
+use BroCode\MagentoPatches\Store\Label;
 
 $failed = 0;
 $ok = static function (bool $condition, string $message) use (&$failed): void {
@@ -84,11 +84,11 @@ $ok($b->exploited && $b->cves === ['CVE-2026-75650'], 'bulletin: exploited + CVE
 // --- stored bulletin data -------------------------------------------------------------------
 $tmp = sys_get_temp_dir() . '/mp-unit-' . bin2hex(random_bytes(3));
 mkdir($tmp);
-$store = new Brocode\MagentoPatches\Source\BulletinStore("$tmp/patches/security-bulletins.json");
+$store = new BroCode\MagentoPatches\Source\BulletinStore("$tmp/patches/security-bulletins.json");
 $store->setIndex(['APSB26-5', 'APSB26-146']);
 $store->put($b);
 $ok($store->save() && is_file("$tmp/patches/security-bulletins.json"), 'store: written');
-$reloaded = new Brocode\MagentoPatches\Source\BulletinStore("$tmp/patches/security-bulletins.json");
+$reloaded = new BroCode\MagentoPatches\Source\BulletinStore("$tmp/patches/security-bulletins.json");
 $copy = $reloaded->get('apsb26-146');
 $ok($copy !== null && $copy->toArray() === $b->toArray(), 'store: bulletin survives a round trip unchanged');
 $ok((string) $copy->affectedBound('Magento Open Source', '2.4.8') === '2.4.8-2026-aug' && $copy->exploited, 'store: reloaded data is usable');
@@ -99,7 +99,7 @@ $ok($reloaded->save() === false, 'store: unchanged bulletin does not rewrite the
 // --- downloads ------------------------------------------------------------------------------
 mkdir("$tmp/in");
 file_put_contents("$tmp/in/APSB26-153.zip", 'zip-bytes');
-$downloads = new Brocode\MagentoPatches\Store\Downloads("$tmp/patches/downloads");
+$downloads = new BroCode\MagentoPatches\Store\Downloads("$tmp/patches/downloads");
 $writes = $downloads->planStore('APSB26-153', ["$tmp/in/APSB26-153.zip"]);
 $ok(array_keys($writes) === [$downloads->dir . '/APSB26-153/APSB26-153.zip'], 'downloads: stored under <ID>/ with its own name');
 foreach ($writes as $path => $content) {
@@ -113,7 +113,7 @@ $all = $downloads->all();
 $ok(isset($all['APSB26-153'], $all['APSB26-07'], $all['']), 'downloads: folders, loose files with id, and unknown files are listed');
 
 // --- KB article -----------------------------------------------------------------------------
-$kb = Brocode\MagentoPatches\Source\KbArticle::parse('https://experienceleague.adobe.com/en/docs/experience-cloud-kcs/kbarticles/ka-49323', <<<'HTML'
+$kb = BroCode\MagentoPatches\Source\KbArticle::parse('https://experienceleague.adobe.com/en/docs/experience-cloud-kcs/kbarticles/ka-49323', <<<'HTML'
 <html><head><meta name="last-update" content="2026-10-16T20:11:29.000Z"></head><body>
 <p>2.4.8-p5 merchants: refer to <a href="/en/docs/experience-cloud-kcs/kbarticles/ka-50927">Updated October 2026 Isolated security patch for Adobe Commerce 2.4.8-p5</a></p>
 <p>See also <a href="/en/docs/experience-cloud-kcs/kbarticles/ka-12345">How to apply a composer patch</a></p>

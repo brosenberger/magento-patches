@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Brocode\MagentoPatches\Magento;
+namespace BroCode\MagentoPatches\Magento;
 
 use DateTimeImmutable;
 use DateTimeInterface;

@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Brocode\MagentoPatches\Runtime;
+namespace BroCode\MagentoPatches\Runtime;
 
-use Brocode\MagentoPatches\Magento\MagentoInfo;
-use Brocode\MagentoPatches\Patch\PackageLocator;
-use Brocode\MagentoPatches\Patch\Pristine;
-use Brocode\MagentoPatches\Patch\Validator;
-use Brocode\MagentoPatches\Plan\Planner;
-use Brocode\MagentoPatches\Store\Downloads;
-use Brocode\MagentoPatches\Store\PatchesFile;
+use BroCode\MagentoPatches\Magento\MagentoInfo;
+use BroCode\MagentoPatches\Patch\PackageLocator;
+use BroCode\MagentoPatches\Patch\Pristine;
+use BroCode\MagentoPatches\Patch\Validator;
+use BroCode\MagentoPatches\Plan\Planner;
+use BroCode\MagentoPatches\Store\Downloads;
+use BroCode\MagentoPatches\Store\PatchesFile;
 use Composer\Composer;
 use Composer\Factory;
 use Composer\IO\IOInterface;

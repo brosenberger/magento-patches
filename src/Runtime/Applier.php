@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Brocode\MagentoPatches\Runtime;
+namespace BroCode\MagentoPatches\Runtime;
 
-use Brocode\MagentoPatches\Patch\DiffParser;
-use Brocode\MagentoPatches\Patch\PackageLocator;
-use Brocode\MagentoPatches\Patch\Stage;
-use Brocode\MagentoPatches\Plan\PlannedPatch;
-use Brocode\MagentoPatches\Store\PatchesFile;
-use Brocode\MagentoPatches\Store\Transaction;
+use BroCode\MagentoPatches\Patch\DiffParser;
+use BroCode\MagentoPatches\Patch\PackageLocator;
+use BroCode\MagentoPatches\Patch\Stage;
+use BroCode\MagentoPatches\Plan\PlannedPatch;
+use BroCode\MagentoPatches\Store\PatchesFile;
+use BroCode\MagentoPatches\Store\Transaction;
 use Composer\IO\IOInterface;
 use RuntimeException;
 use Throwable;

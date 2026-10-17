@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Brocode\MagentoPatches\Command;
+namespace BroCode\MagentoPatches\Command;
 
-use Brocode\MagentoPatches\Store\Label;
+use BroCode\MagentoPatches\Store\Label;
 use Composer\IO\IOInterface;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;

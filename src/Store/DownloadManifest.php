@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Brocode\MagentoPatches\Store;
+namespace BroCode\MagentoPatches\Store;
 
 use DateTimeImmutable;
 use RuntimeException;

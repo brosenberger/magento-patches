@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Brocode\MagentoPatches\Source;
+namespace BroCode\MagentoPatches\Source;
 
-use Brocode\MagentoPatches\Magento\MagentoVersion;
+use BroCode\MagentoPatches\Magento\MagentoVersion;
 use DOMDocument;
 use DOMElement;
 use DOMXPath;

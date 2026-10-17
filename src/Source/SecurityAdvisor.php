@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Brocode\MagentoPatches\Source;
+namespace BroCode\MagentoPatches\Source;
 
-use Brocode\MagentoPatches\Magento\MagentoInfo;
-use Brocode\MagentoPatches\Magento\MagentoVersion;
-use Brocode\MagentoPatches\Store\Label;
-use Brocode\MagentoPatches\Store\PatchesFile;
+use BroCode\MagentoPatches\Magento\MagentoInfo;
+use BroCode\MagentoPatches\Magento\MagentoVersion;
+use BroCode\MagentoPatches\Store\Label;
+use BroCode\MagentoPatches\Store\PatchesFile;
 
 /**
  * Decides whether a bulletin concerns the installed Magento, based on the versions Composer

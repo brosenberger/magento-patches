@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Brocode\MagentoPatches\Command;
+namespace BroCode\MagentoPatches\Command;
 
-use Brocode\MagentoPatches\Magento\MagentoVersion;
-use Brocode\MagentoPatches\Plan\Plan;
-use Brocode\MagentoPatches\Plan\Source;
-use Brocode\MagentoPatches\Runtime\Context;
-use Brocode\MagentoPatches\Runtime\LegacySetup;
-use Brocode\MagentoPatches\Source\IsolatedPatchFiles;
-use Brocode\MagentoPatches\Source\QualityPatches;
-use Brocode\MagentoPatches\Store\DownloadManifest;
-use Brocode\MagentoPatches\Store\Label;
-use Brocode\MagentoPatches\Store\Transaction;
+use BroCode\MagentoPatches\Magento\MagentoVersion;
+use BroCode\MagentoPatches\Plan\Plan;
+use BroCode\MagentoPatches\Plan\Source;
+use BroCode\MagentoPatches\Runtime\Context;
+use BroCode\MagentoPatches\Runtime\LegacySetup;
+use BroCode\MagentoPatches\Source\IsolatedPatchFiles;
+use BroCode\MagentoPatches\Source\QualityPatches;
+use BroCode\MagentoPatches\Store\DownloadManifest;
+use BroCode\MagentoPatches\Store\Label;
+use BroCode\MagentoPatches\Store\Transaction;
 use Composer\Command\BaseCommand;
 use Composer\Util\Filesystem;
 use RuntimeException;
@@ -418,7 +418,7 @@ abstract class AbstractPatchCommand extends BaseCommand
     private function hunkPrint(Context $ctx, array $patches, ?Context $locate): string
     {
         $keys = [];
-        $parser = new \Brocode\MagentoPatches\Patch\DiffParser();
+        $parser = new \BroCode\MagentoPatches\Patch\DiffParser();
         foreach ($patches as $text) {
             try {
                 $chunks = $parser->parse((string) $text);

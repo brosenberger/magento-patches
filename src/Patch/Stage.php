@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Brocode\MagentoPatches\Patch;
+namespace BroCode\MagentoPatches\Patch;
 
 use Composer\Util\Filesystem;
 use Composer\Util\ProcessExecutor;

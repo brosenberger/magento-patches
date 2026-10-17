@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Brocode\MagentoPatches;
+namespace BroCode\MagentoPatches;
 
 use Composer\Composer;
 use Composer\IO\IOInterface;

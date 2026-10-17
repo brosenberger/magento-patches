@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Brocode\MagentoPatches\Source;
+namespace BroCode\MagentoPatches\Source;
 
-use Brocode\MagentoPatches\Magento\MagentoInfo;
-use Brocode\MagentoPatches\Magento\MagentoVersion;
+use BroCode\MagentoPatches\Magento\MagentoInfo;
+use BroCode\MagentoPatches\Magento\MagentoVersion;
 use Composer\Util\Filesystem;
 use RuntimeException;
 use ZipArchive;

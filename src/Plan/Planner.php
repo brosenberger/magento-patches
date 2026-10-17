@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Brocode\MagentoPatches\Plan;
+namespace BroCode\MagentoPatches\Plan;
 
-use Brocode\MagentoPatches\Patch\Chunk;
-use Brocode\MagentoPatches\Patch\DiffParser;
-use Brocode\MagentoPatches\Patch\Location;
-use Brocode\MagentoPatches\Patch\PackageLocator;
-use Brocode\MagentoPatches\Patch\Pristine;
-use Brocode\MagentoPatches\Patch\Stage;
-use Brocode\MagentoPatches\Patch\Validator;
-use Brocode\MagentoPatches\Patch\Verdict;
-use Brocode\MagentoPatches\Store\Label;
-use Brocode\MagentoPatches\Store\PatchesFile;
+use BroCode\MagentoPatches\Patch\Chunk;
+use BroCode\MagentoPatches\Patch\DiffParser;
+use BroCode\MagentoPatches\Patch\Location;
+use BroCode\MagentoPatches\Patch\PackageLocator;
+use BroCode\MagentoPatches\Patch\Pristine;
+use BroCode\MagentoPatches\Patch\Stage;
+use BroCode\MagentoPatches\Patch\Validator;
+use BroCode\MagentoPatches\Patch\Verdict;
+use BroCode\MagentoPatches\Store\Label;
+use BroCode\MagentoPatches\Store\PatchesFile;
 use Composer\Util\ProcessExecutor;
 
 /**

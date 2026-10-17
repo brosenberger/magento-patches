@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Brocode\MagentoPatches\Runtime;
+namespace BroCode\MagentoPatches\Runtime;
 
 use Composer\Package\RootPackageInterface;
 

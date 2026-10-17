@@ -3,11 +3,26 @@
     "description": "Composer commands to add Magento 2 security, quality and custom patches safely: per-package split, edition/version aware, idempotent, validated before anything is written. Applies via cweagans/composer-patches 2.x.",
     "type": "composer-plugin",
     "license": "MIT",
-    "keywords": ["magento", "magento2", "adobe-commerce", "patches", "security", "composer-plugin"],
+    "keywords": [
+        "magento",
+        "magento2",
+        "adobe-commerce",
+        "patches",
+        "security",
+        "composer-plugin"
+    ],
+    "version": "1.0.0",
     "authors": [
         {
             "name": "Benjamin Rosenberger",
+            "email": "bensch.rosenberger@gmail.com",
             "homepage": "https://brocode.at"
+        }
+    ],
+    "funding": [
+        {
+            "type": "By me a coffee",
+            "url": "https://www.buymeacoffee.com/brosenberger"
         }
     ],
     "require": {
@@ -26,11 +41,11 @@
     },
     "autoload": {
         "psr-4": {
-            "Brocode\\MagentoPatches\\": "src/"
+            "BroCode\\MagentoPatches\\": "src/"
         }
     },
     "extra": {
-        "class": "Brocode\\MagentoPatches\\Plugin"
+        "class": "BroCode\\MagentoPatches\\Plugin"
     },
     "config": {
         "sort-packages": true

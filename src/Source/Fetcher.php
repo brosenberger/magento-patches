@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Brocode\MagentoPatches\Source;
+namespace BroCode\MagentoPatches\Source;
 
 use Composer\Util\Filesystem;
 use Composer\Util\HttpDownloader;

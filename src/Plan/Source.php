@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Brocode\MagentoPatches\Plan;
+namespace BroCode\MagentoPatches\Plan;
 
-use Brocode\MagentoPatches\Patch\Chunk;
-use Brocode\MagentoPatches\Patch\DiffParser;
+use BroCode\MagentoPatches\Patch\Chunk;
+use BroCode\MagentoPatches\Patch\DiffParser;
 
 /**
  * One patch to ingest — an isolated security patch file, a QPT patch, a custom patch,
