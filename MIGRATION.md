@@ -163,7 +163,10 @@ What changes:
 - Monthly files patch the same files repeatedly (the October file changes lines July touched).
   Register them **in order**; the plugin validates each against the state the earlier ones leave.
 - Files for another version than the installed one are rejected (e.g. a `…_245-p17.patch` on a
-  2.4.5-p14 install). Get the file for your version, or upgrade first (`patches:upgrade`).
+  2.4.5-p14 install). Get the file for your version, or upgrade first (`patches:upgrade`). If your
+  line gets no file at all (Open Source 2.4.6 from September 2026 on), `--from-version=<version>`
+  tries a newer line's file as a backport — validated all or nothing, labelled as a backport, and
+  only as good as your own testing. A 2.4.8-p5 file on 2.4.6-p15 did not fit (8 files conflicted).
 
 ## B. `git apply --reject`
 
