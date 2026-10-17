@@ -73,6 +73,10 @@ final class RemoveCommand extends AbstractPatchCommand
                     $ctx->store->unmarkCovered($bulletin);
                     $storeChanged = $other = true;
                 }
+                if ($ctx->store->backportFrom($bulletin) !== null) {
+                    $ctx->store->unmarkBackport($bulletin);
+                    $storeChanged = true;
+                }
                 if (!$input->getOption('keep-download')) {
                     foreach ($ctx->downloads->filesFor($bulletin) as $file) {
                         $deletes[] = $file;

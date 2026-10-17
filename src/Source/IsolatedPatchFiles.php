@@ -84,10 +84,13 @@ final class IsolatedPatchFiles
      * @param string[] $files
      * @return array{files: string[], notes: string[]}
      */
-    public function select(array $files, MagentoInfo $info, ?MagentoVersion $latestRelease): array
+    public function select(array $files, MagentoInfo $info, ?MagentoVersion $latestRelease, ?MagentoVersion $as = null): array
     {
-        $version = $info->version();
+        $version = $as ?? $info->version();
         $notes = [];
+        if ($as !== null && $as->raw !== $info->version()->raw) {
+            $notes[] = sprintf('Backport: file made for %s, applied to %s. Adobe has not tested this combination — test it yourself.', $as, $info->version());
+        }
         $byPattern = static fn (string $pattern): array => array_values(array_filter(
             $files,
             static fn (string $f): bool => (bool) preg_match($pattern, basename($f))
@@ -121,9 +124,10 @@ final class IsolatedPatchFiles
 
         if ($selected === []) {
             throw new RuntimeException(sprintf(
-                "None of the patch files is for %s:\n  - %s",
-                $info->describe(),
-                implode("\n  - ", array_map('basename', $files))
+                "None of the patch files is for %s:\n  - %s%s",
+                $as !== null ? $as : $info->describe(),
+                implode("\n  - ", array_map('basename', $files)),
+                $as === null ? "\n  To try a file made for another version (e.g. no file for your line), pass --from-version=<that version>." : ''
             ));
         }
         usort($selected, fn (string $a, string $b): int => [$this->editionOrder($a), basename($a)] <=> [$this->editionOrder($b), basename($b)]);
@@ -139,9 +143,9 @@ final class IsolatedPatchFiles
      * @param list<array{name: string, url: string}> $links
      * @return list<array{name: string, url: string}>
      */
-    public function relevantLinks(array $links, MagentoInfo $info): array
+    public function relevantLinks(array $links, MagentoInfo $info, ?MagentoVersion $as = null): array
     {
-        $version = $info->version();
+        $version = $as ?? $info->version();
         $match = static fn (string $pattern): array => array_values(array_filter($links, static fn (array $l): bool => (bool) preg_match($pattern, $l['name'])));
         $selected = $match($version->fileNamePattern());
         if ($selected === []) {

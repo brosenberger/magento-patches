@@ -219,7 +219,7 @@ abstract class AbstractPatchCommand extends BaseCommand
      * @param array<string, string[]> $byId bulletin id => zip / patch files / folders
      * @param array<string, string> $origins input file => URL it was downloaded from
      */
-    protected function addSecurity(Context $ctx, InputInterface $input, array $byId, bool $store, array $origins = [], ?DownloadManifest $manifest = null): int
+    protected function addSecurity(Context $ctx, InputInterface $input, array $byId, bool $store, array $origins = [], ?DownloadManifest $manifest = null, ?MagentoVersion $as = null): int
     {
         $io = $this->getIO();
         $manifest ??= $this->manifest($ctx);
@@ -229,8 +229,9 @@ abstract class AbstractPatchCommand extends BaseCommand
         $patchSources = [];
         $writes = [];
         foreach ($byId as $id => $inputs) {
+            $from = $as ?? $this->backportVersion($ctx, $id);
             try {
-                $selection = $collector->select($collector->collect($inputs), $ctx->info, $latest);
+                $selection = $collector->select($collector->collect($inputs), $ctx->info, $latest, $from);
             } catch (RuntimeException $e) {
                 $plan->conflicts[] = $id . ': ' . $e->getMessage();
                 continue;
@@ -240,7 +241,10 @@ abstract class AbstractPatchCommand extends BaseCommand
             }
             foreach ($selection['files'] as $file) {
                 $io->write(sprintf('  %s: using <comment>%s</comment>', $id, basename($file)));
-                $patchSources[] = Source::fromFile(Label::SECURITY, $id, basename($file), $file);
+                $patchSources[] = Source::fromFile(Label::SECURITY, $id, $this->sourceDetail($ctx, basename($file), $from), $file);
+            }
+            if ($from !== null && $from->raw !== $ctx->info->version()->raw) {
+                $ctx->store->markBackport($id, $from->raw);
             }
             if ($store) {
                 $byHash = [];
@@ -299,9 +303,10 @@ abstract class AbstractPatchCommand extends BaseCommand
      * @param string[] $deletes absolute download paths that are obsolete
      * @param array<string, ?string> $origins absolute download path => source URL (for the manifest)
      */
-    protected function replaceSecurity(Context $ctx, InputInterface $input, string $id, array $writes, array $deletes, array $origins, string $reason, ?DownloadManifest $manifest = null): int
+    protected function replaceSecurity(Context $ctx, InputInterface $input, string $id, array $writes, array $deletes, array $origins, string $reason, ?DownloadManifest $manifest = null, ?MagentoVersion $as = null): int
     {
         $io = $this->getIO();
+        $from = $as ?? $this->backportVersion($ctx, $id);
         $manifest ??= $this->manifest($ctx);
         $io->write(sprintf('<comment>%s</comment>: %s', $id, $reason));
 
@@ -339,7 +344,7 @@ abstract class AbstractPatchCommand extends BaseCommand
 
         $collector = new IsolatedPatchFiles($this->scratch('replace-collect-' . $id));
         try {
-            $selection = $collector->select($collector->collect($set), $ctx->info, $this->latestRelease($ctx, $input));
+            $selection = $collector->select($collector->collect($set), $ctx->info, $this->latestRelease($ctx, $input), $from);
         } catch (RuntimeException $e) {
             $plan = new Plan();
             $plan->conflicts[] = $id . ': ' . $e->getMessage();
@@ -392,7 +397,10 @@ abstract class AbstractPatchCommand extends BaseCommand
             $new = $this->context($input);
             $sources = [];
             $inserted = false;
-            $newSources = array_map(static fn (string $f): Source => Source::fromFile(Label::SECURITY, $id, basename($f), $f), $selection['files']);
+            $newSources = array_map(fn (string $f): Source => Source::fromFile(Label::SECURITY, $id, $this->sourceDetail($new, basename($f), $from), $f), $selection['files']);
+            if ($from !== null && $from->raw !== $new->info->version()->raw) {
+                $new->store->markBackport($id, $from->raw);
+            }
             foreach ($affected as $i => $entry) {
                 $label = Label::parse($entry['label']);
                 if ($label['tag'] === Label::SECURITY && strcasecmp($label['id'], $id) === 0) {
@@ -432,6 +440,20 @@ abstract class AbstractPatchCommand extends BaseCommand
         $io->write(sprintf('<info>%s updated to the new download.</info> Commit patches/, %s and %s.', $id, basename($ctx->store->path), basename($ctx->lockFile)));
 
         return 0;
+    }
+
+    /** Version a bulletin was registered from with --from-version, if any. */
+    protected function backportVersion(Context $ctx, string $id): ?MagentoVersion
+    {
+        $raw = $ctx->store->backportFrom($id);
+
+        return $raw !== null ? MagentoVersion::parse($raw) : null;
+    }
+
+    /** Label detail: the file name, marked when the file was made for another version. */
+    protected function sourceDetail(Context $ctx, string $fileName, ?MagentoVersion $from): string
+    {
+        return $from !== null && $from->raw !== $ctx->info->version()->raw ? $fileName . ' [backport from ' . $from->raw . ']' : $fileName;
     }
 
     /**

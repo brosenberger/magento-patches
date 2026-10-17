@@ -164,6 +164,29 @@ final class PatchesFile
         ksort($this->data['brocode-magento-patches']['covered']);
     }
 
+    /** Bulletins registered from a file made for another version (--from-version): id => that version. */
+    public function markBackport(string $id, string $version): void
+    {
+        $this->data['brocode-magento-patches']['backports'][\BroCode\MagentoPatches\Source\Bulletin::normalizeId($id)] = $version;
+        ksort($this->data['brocode-magento-patches']['backports']);
+    }
+
+    public function backportFrom(string $id): ?string
+    {
+        return $this->data['brocode-magento-patches']['backports'][\BroCode\MagentoPatches\Source\Bulletin::normalizeId($id)] ?? null;
+    }
+
+    public function unmarkBackport(string $id): void
+    {
+        unset($this->data['brocode-magento-patches']['backports'][\BroCode\MagentoPatches\Source\Bulletin::normalizeId($id)]);
+        if (($this->data['brocode-magento-patches']['backports'] ?? null) === []) {
+            unset($this->data['brocode-magento-patches']['backports']);
+        }
+        if (($this->data['brocode-magento-patches'] ?? null) === []) {
+            unset($this->data['brocode-magento-patches']);
+        }
+    }
+
     public function isCovered(string $id): bool
     {
         return isset($this->data['brocode-magento-patches']['covered'][\BroCode\MagentoPatches\Source\Bulletin::normalizeId($id)]);

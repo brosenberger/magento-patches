@@ -30,6 +30,7 @@ declare(strict_types=1);
 
 namespace BroCode\MagentoPatches\Command;
 
+use BroCode\MagentoPatches\Magento\MagentoVersion;
 use BroCode\MagentoPatches\Runtime\Context;
 use BroCode\MagentoPatches\Source\Bulletin;
 use BroCode\MagentoPatches\Source\BulletinCatalog;
@@ -57,6 +58,7 @@ final class SecurityCommand extends AbstractPatchCommand
             ->addArgument('files', InputArgument::IS_ARRAY, 'Downloaded zip / .patch files / folder of an Adobe isolated security patch')
             ->addOption('id', null, InputOption::VALUE_REQUIRED, 'Bulletin id the files belong to (APSB26-153); detected from the file name if possible')
             ->addOption('replace', null, InputOption::VALUE_NONE, 'The given files replace everything stored for this bulletin (re-validated and re-applied)')
+            ->addOption('from-version', null, InputOption::VALUE_REQUIRED, 'Use the file made for this version (e.g. 2.4.7-p10) although another one is installed — a backport for a line or -p without its own file. Same checks, all or nothing; Adobe has not tested the combination')
             ->addOption('download', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Download the files for the installed version from the bulletin\'s KB article and add them (needs repo.magento.com keys in auth.json)')
             ->addOption('check-downloads', null, InputOption::VALUE_NONE, 'Re-download every stored file from its source / KB article, compare sha256, and replace what Adobe changed')
             ->addOption('bulletin', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Only check these bulletins')
@@ -80,6 +82,9 @@ final class SecurityCommand extends AbstractPatchCommand
 <info>composer patches:security ~/Downloads/APSB26-153.zip</info>
 <info>composer patches:security https://repo.magento.com/patch/2-4-7-p10-oct-2026.zip --id=APSB26-153</info>
 <info>composer patches:security --download=APSB26-153</info>
+<info>composer patches:security ~/Downloads/2-4-7-p10-oct-2026.zip --id=APSB26-153 --from-version=2.4.7-p10</info>
+  Backport: no file for your version (e.g. Open Source 2.4.6 gets no file from September 2026 on).
+  Every change is validated against your code; if one does not fit, nothing is written.
   Keeps the download in patches/downloads/APSB26-153/ (sha256 + source URL in manifest.json),
   picks the files for the installed version, splits them per package, validates and registers
   them. Re-running is safe. A file with the same name but other content replaces the stored one.
@@ -169,10 +174,24 @@ HELP);
 
             return $this->replaceSecurity($ctx, $input, $id, $writes, $deletes, $origins, $collision
                 ? 'a stored file was given again with different content — treating it as a new version'
-                : 'replacing the stored download (--replace)');
+                : 'replacing the stored download (--replace)', null, $this->fromVersion($input));
         }
 
-        return $this->addSecurity($ctx, $input, [$id => $local], true, $origins);
+        return $this->addSecurity($ctx, $input, [$id => $local], true, $origins, null, $this->fromVersion($input));
+    }
+
+    private function fromVersion(InputInterface $input): ?MagentoVersion
+    {
+        $raw = $input->getOption('from-version');
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+        $version = MagentoVersion::parse((string) $raw);
+        if ($version === null) {
+            throw new RuntimeException(sprintf('--from-version: "%s" is not a Magento version like 2.4.7-p10.', $raw));
+        }
+
+        return $version;
     }
 
     /** @param string[] $ids */
@@ -204,11 +223,11 @@ HELP);
             }
             $manifest = $this->manifest($ctx);
             [$links] = $this->offeredLinks($fetcher, $bulletin, $manifest, true);
-            $relevant = $collector->relevantLinks($links, $ctx->info);
+            $relevant = $collector->relevantLinks($links, $ctx->info, $this->fromVersion($input));
             $updated = array_values(array_filter($relevant, static fn (array $l): bool => !empty($l['updated'])));
             $relevant = $updated !== [] ? $updated : $relevant;
             if ($relevant === []) {
-                $io->writeError(sprintf('<error>%s</error> no download for %s found in the KB article(s)%s', $id, $ctx->info->version(), $links === [] ? '' : ":\n  - " . implode("\n  - ", array_column($links, 'url'))));
+                $io->writeError(sprintf('<error>%s</error> no download for %s found in the KB article(s)%s', $id, $this->fromVersion($input) ?? $ctx->info->version(), $links === [] ? '' : ":\n  - " . implode("\n  - ", array_column($links, 'url'))));
                 $io->writeError(sprintf('Pick one and run: composer patches:security <url> --id=%s', $id));
                 $result = 1;
                 continue;
@@ -221,7 +240,7 @@ HELP);
                 $local[] = $path;
                 $origins[$path] = $link['url'];
             }
-            $result = max($result, $this->addSecurity($ctx, $input, [$id => $local], true, $origins, $manifest));
+            $result = max($result, $this->addSecurity($ctx, $input, [$id => $local], true, $origins, $manifest, $this->fromVersion($input)));
             $ctx = $this->context($input);
         }
 

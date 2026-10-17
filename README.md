@@ -19,6 +19,7 @@ composer require brocode/magento-patches   # Composer asks once to allow the two
 | `composer patches:security` | Lists Adobe bulletins that affect the installed version, oldest first, with download link and file name. Exit code 2 if something is missing. |
 | `composer patches:security <zip\|patch\|dir\|url>` | Keeps the download in `patches/downloads/<ID>/` (sha256 + source in `manifest.json`), picks the file for your version, splits it per package, validates, registers. |
 | `composer patches:security --download=APSB26-153` | Fetches the file for your version from the bulletin's KB article (repo.magento.com, keys from `auth.json`) and adds it. |
+| `composer patches:security <file> --id=APSB26-153 --from-version=2.4.7-p10` | Backport: uses the file made for another version when yours has none (e.g. Open Source 2.4.6 gets no file from September 2026 on). Same checks, all or nothing; labelled `[backport from …]` and remembered for `sync`, `--check-downloads` and `upgrade`. |
 | `composer patches:security --check-downloads` | Re-downloads every stored file, compares sha256, and replaces what Adobe changed or superseded (also part of `--refresh`). |
 | `composer patches:sync` | Brings `patches.json` in line with `patches/downloads/`: registers new downloads, rebuilds bulletins whose files changed in the repo — for CI. `--check` only reports (exit 1). |
 | `composer patches:quality ACSD-12345 …` | Adds QPT patches; the file matching the installed versions is chosen, `require` / `replaced-with` are followed. |
@@ -138,7 +139,8 @@ really installed, not what `composer.json` asks for:
   (`VULN-39341_2.4.8-p5.patch`, `2-4-8-p5-oct-2026.zip`) or compact as in Adobe's monthly files
   (`248p5-2026-07-001-CE.patch`, `VULN-39341_248-p5.patch`, B2B `133p18-2026-07-001-B2B.patch`).
   Adobe's monthly-build files for the line are used only if no exact file exists, and you get a
-  warning when you're not on the latest `-p`.
+  warning when you're not on the latest `-p`. A file for another version is refused unless you ask
+  for it with `--from-version` — Adobe tests each file only on the version it was made for.
 - Changes to `vendor/bin/patch-status` (Adobe's versioning tool, shipped inside the monthly files)
   are left out with a note: no package owns `vendor/bin`, and the tool fixes nothing —
   `patches:status` covers the same ground.

@@ -75,6 +75,20 @@ composer config scripts.post-install-cmd 'false'   # a project script that fails
 out=$(run patches:add "$IN/catalog-helper.patch"); check "custom: new file + xml change, despite a failing post-install script" '[ -f vendor/magento/module-catalog/Model/Helper.php ]'
 composer config --unset scripts.post-install-cmd
 out=$(run patches:status); check "status: everything applied" '! grep -q "not applied" <<<"$out"'
+# --- backport: an isolated file made for another version (an older line without its own file) ---
+mkdir -p "$WORK/bp"
+php -r 'file_put_contents($argv[2], str_replace("        return 3;", "        return (int) 3;", file_get_contents($argv[1])));' $DUMMY "$WORK/Dummy.bp.php"
+{ echo "diff --git a/$DUMMY b/$DUMMY"; diff -u --label "a/$DUMMY" --label "b/$DUMMY" $DUMMY "$WORK/Dummy.bp.php"; } > "$WORK/bp/VULN-1010_2.4.7-p10.patch"
+sed 's/^ /  /' "$WORK/bp/VULN-1010_2.4.7-p10.patch" > "$WORK/bp/VULN-1011_2.4.7-p10.patch"   # context that exists nowhere
+before=$(sha1sum patches.json)
+out=$(run patches:security "$WORK/bp/VULN-1010_2.4.7-p10.patch" --id=APSB26-990); check "backport: file for another version refused, --from-version suggested" 'grep -q "None of the patch files" <<<"$out" && grep -q -- "--from-version" <<<"$out" && [ "$(sha1sum patches.json)" = "$before" ]'
+out=$(run patches:security "$WORK/bp/VULN-1011_2.4.7-p10.patch" --id=APSB26-991 --from-version=2.4.7-p10); check "backport: a file that does not fit → conflict, nothing changed" 'grep -q CONFLICT <<<"$out" && [ "$(sha1sum patches.json)" = "$before" ] && [ ! -d patches/downloads/APSB26-991 ]'
+out=$(run patches:security "$WORK/bp/VULN-1010_2.4.7-p10.patch" --id=APSB26-990 --from-version=2.4.7-p10); check "backport: --from-version applies it, labelled and remembered" 'grep -q "return (int) 3;" $DUMMY && grep -q "backport from 2.4.7-p10" patches.json && grep -q "\"APSB26-990\": \"2.4.7-p10\"" patches.json && grep -qi "not tested" <<<"$out"'
+out=$(run patches:status); code=$?; check "backport: status clean" '[ $code -eq 0 ] && ! grep -q "not applied" <<<"$out"'
+{ echo "From: repackaged by hand"; cat patches/downloads/APSB26-990/VULN-1010_2.4.7-p10.patch; } > "$WORK/bp/re.patch" && cp "$WORK/bp/re.patch" patches/downloads/APSB26-990/VULN-1010_2.4.7-p10.patch
+out=$(run patches:sync); check "backport: sync re-selects a changed download with the remembered version" 'grep -q "repackaged" <<<"$out" && ! grep -q CONFLICT <<<"$out" && grep -q "return (int) 3;" $DUMMY'
+out=$(run patches:remove APSB26-990); check "backport: remove takes the change and the mark out" '! grep -q "return (int) 3;" $DUMMY && ! grep -q "APSB26-990" patches.json'
+
 # --- composer-patches 1.x style patch at depth 4 ("a/vendor/<vendor>/<pkg>/…") next to managed ones ---
 sed 's/return 2;/return 22;/' $DUMMY > "$WORK/Dummy.depth4.php"
 mkdir -p legacy && { echo "diff --git a/$DUMMY b/$DUMMY"; diff -u --label "a/$DUMMY" --label "b/$DUMMY" $DUMMY "$WORK/Dummy.depth4.php"; } > legacy/depth4.patch

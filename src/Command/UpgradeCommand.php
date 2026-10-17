@@ -132,10 +132,11 @@ HELP);
                         foreach ($selection['files'] as $file) {
                             $sources[] = Source::fromFile(Label::SECURITY, (string) $id, basename($file), $file);
                         }
+                        $new->store->unmarkBackport((string) $id); // the release now has its own file
                         $plan->note('info', sprintf('%s: re-selected from the stored download for %s', $id, $target));
                         continue;
                     } catch (RuntimeException) {
-                        // no file for the new version — re-validate what was registered
+                        // no file for the new version — re-validate what was registered (a backport stays one)
                     }
                 }
                 foreach ($parked as $i => $entry) {
