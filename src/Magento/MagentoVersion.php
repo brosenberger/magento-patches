@@ -121,14 +121,20 @@ final class MagentoVersion
         };
     }
 
-    /** Regex that finds this exact version inside a file name: 2.4.7-p10 / 2-4-7-p10 / 2_4_7_p10, not -p1 for -p10. */
+    /**
+     * Regex that finds this exact version inside a file name: 2.4.7-p10 / 2-4-7-p10 / 2_4_7_p10, and
+     * the compact form of Adobe's isolated patch files (247p10-2026-07-001-CE.patch, VULN-39341_247-p10.patch);
+     * not -p1 for -p10.
+     */
     public function fileNamePattern(): string
     {
         $parts = preg_split('/[.\-]/', $this->raw) ?: [];
         $quoted = array_map(static fn (string $p): string => preg_quote($p, '#'), $parts);
+        $dotted = '(?<![0-9])' . implode('[._-]', $quoted);
+        $compact = '(?<![0-9a-z])' . implode('', array_slice($quoted, 0, 3)) . ($this->kind === 'ga' ? '' : '[._-]?' . implode('[._-]', array_slice($quoted, 3)));
 
-        // A plain 2.4.7 must not match 2.4.7-p10 or 2.4.7-2026-jul.
-        return '#(?<![0-9])' . implode('[._-]', $quoted) . '(?![0-9a-z]|[._-](?:p\d|alpha|beta|rc|\d{4}))#i';
+        // A plain 2.4.7 must not match 2.4.7-p10 or the monthly build 2.4.7-2026-jul (but does match 247-2026-07-001).
+        return '#(?:' . $dotted . '|' . $compact . ')(?![0-9a-z]|[._-](?:p\d|alpha|beta|rc|\d{4}[._-][a-z]{3}))#i';
     }
 
     public function __toString(): string

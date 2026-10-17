@@ -40,6 +40,14 @@ $p = V::parse('2.4.7-p1')->fileNamePattern();
 $ok(preg_match($p, 'VULN-1_2.4.7-p1.patch') === 1 && preg_match($p, 'VULN-1_2.4.7-p10.patch') === 0, 'file pattern for -p1 does not match -p10');
 $p = V::parse('2.4.7')->fileNamePattern();
 $ok(preg_match($p, 'X_2.4.7.patch') === 1 && preg_match($p, 'X_2.4.7-p10.patch') === 0 && preg_match($p, 'X_2-4-7-2026-jul.patch') === 0, 'file pattern for GA excludes -p and monthly builds');
+// Adobe's isolated patch files name the version without dots: 248p5-2026-07-001-CE.patch, VULN-39341_248-p5.patch.
+$p = V::parse('2.4.8-p5')->fileNamePattern();
+$ok(preg_match($p, '248p5-2026-07-001-CE.patch') === 1 && preg_match($p, 'VULN-39341_248-p5.patch') === 1 && preg_match($p, 'APSB26-73__248p5-2026-08-001-EE.patch') === 1, 'file pattern matches the compact version (248p5, 248-p5)');
+$ok(preg_match($p, '248p50-2026-07-001-CE.patch') === 0 && preg_match($p, '247p5-2026-07-001-CE.patch') === 0 && preg_match($p, 'VULN-1248p5.patch') === 0, '… but not -p50, another line, or digits glued to a longer number');
+$ok(preg_match(V::parse('2.4.7-p1')->fileNamePattern(), '247p10-2026-07-001-CE.patch') === 0, 'compact -p1 does not match -p10');
+$p = V::parse('2.4.9')->fileNamePattern();
+$ok(preg_match($p, '249-2026-07-001-CE.patch') === 1 && preg_match($p, '249p1-2026-07-001-CE.patch') === 0, 'compact GA matches its monthly file, not a -p');
+$ok(preg_match(V::parse('1.3.3-p18')->fileNamePattern(), '133p18-2026-07-001-B2B.patch') === 1, 'compact B2B version (133p18)');
 
 // --- diffs ----------------------------------------------------------------------------------
 $plain = "preamble\n--- a/vendor/x/y/a.sql\t2024-01-01\n+++ b/vendor/x/y/a.sql\n@@ -1,3 +1,3 @@\n line1\n---- removed comment\n+-- added\n line3\n"
