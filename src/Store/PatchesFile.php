@@ -41,6 +41,9 @@ final class PatchesFile
     /** @var array<string, mixed> */
     private array $data;
 
+    /** Indentation of the existing file, kept when writing (json_encode always uses 4). */
+    private int $indent = 4;
+
     /**
      * @param array<string, int> $packageDepths extra.composer-patches.package-depths
      * @param int $defaultDepth extra.composer-patches.default-patch-depth
@@ -52,7 +55,11 @@ final class PatchesFile
     ) {
         $this->data = ['patches' => []];
         if (is_file($path)) {
-            $decoded = json_decode((string) file_get_contents($path), true);
+            $raw = (string) file_get_contents($path);
+            if (preg_match('/^( +)"/m', $raw, $m)) {
+                $this->indent = strlen($m[1]);
+            }
+            $decoded = json_decode($raw, true);
             if (!is_array($decoded)) {
                 throw new RuntimeException(sprintf('%s is not valid JSON: %s', $path, json_last_error_msg()));
             }
@@ -218,7 +225,12 @@ final class PatchesFile
             $data['patches'] = new \stdClass();
         }
 
-        return json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . "\n";
+        $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        if ($this->indent !== 4) {
+            $json = (string) preg_replace_callback('/^(?: {4})+/m', fn (array $m): string => str_repeat(' ', intdiv(strlen($m[0]), 4) * $this->indent), $json);
+        }
+
+        return $json . "\n";
     }
 
     /** @return list<array{0: string, 1: string, 2: ?int}> label, url, explicit depth */

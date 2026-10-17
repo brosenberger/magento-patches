@@ -153,6 +153,13 @@ $ok($kb->related === ['https://experienceleague.adobe.com/en/docs/experience-clo
 $p = V::parse('2.4.7-p10')->fileNamePattern();
 $ok(preg_match($p, '2-4-7-p10-oct-2026.zip') === 1 && preg_match(V::parse('2.4.9')->fileNamePattern(), '2-4-9-oct-2026.zip') === 1, 'kb: repo.magento.com file names match the installed version');
 
+// --- patches.json formatting -----------------------------------------------------------------
+$pf = "$tmp/two-space.json";
+file_put_contents($pf, "{\n  \"patches\": {\n    \"a/b\": {\n      \"Fix\": \"x.patch\"\n    }\n  }\n}\n");
+$store = new BroCode\MagentoPatches\Store\PatchesFile($pf);
+$store->add('a/b', '[CUSTOM] y', 'y.patch');
+$ok(str_starts_with($store->encode(), "{\n  \"patches\": {\n    \"a/b\": {\n      \"Fix\""), 'patches file: existing 2-space indentation kept');
+
 exec('rm -rf ' . escapeshellarg($tmp));
 echo $failed === 0 ? "---- all passed\n" : "---- {$failed} failed\n";
 exit($failed === 0 ? 0 : 1);
