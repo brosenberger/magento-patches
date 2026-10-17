@@ -200,6 +200,14 @@ echo "not a patch for this version" > "$W/zip/CE/VULN-1001_2.4.7-p10.patch"
 (cd "$W/zip" && zip -qr "$IN/APSB26-999.zip" CE EE)
 udiff vendor/magento/module-catalog/Model/Product.php "$W/Product.php" "$W/Product.fixed.php" > "$IN/APSB26-998_VULN-1002_2.4.8.patch"
 
+# Adobe's monthly file: compact version in the name, and it ships their vendor/bin/patch-status tool
+sed 's/return 1;/return 100;/' "$P/module-email-101.2.8/Model/Dummy.php" > "$W/Dummy.monthly.php"
+printf '#!/usr/bin/env php\n<?php echo "status";\n' > "$W/patch-status"
+{
+  udiff vendor/magento/module-email/Model/Dummy.php "$P/module-email-101.2.8/Model/Dummy.php" "$W/Dummy.monthly.php"
+  newfile vendor/bin/patch-status "$W/patch-status"
+} > "$IN/248-2026-07-001-CE.patch"
+
 D=$P/module-email-101.2.8/Model/Dummy.php
 php -r '
 $src = file_get_contents($argv[1]); $w = $argv[2];

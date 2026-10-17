@@ -39,6 +39,17 @@ check "security: other-version file and not-installed modules left out" 'grep -q
 out=$(run patches:security "$IN/APSB26-999.zip"); check "security: second run is a no-op" 'grep -q "Nothing to do" <<<"$out" && [ $(ls patches/downloads/APSB26-999 | wc -l) -eq 1 ]'
 out=$(run patches:security "$IN/APSB26-998_VULN-1002_2.4.8.patch"); check "security: same fix in another bulletin → covered, download kept" 'grep -q "recorded as covered" <<<"$out" && [ -f patches/downloads/APSB26-998/APSB26-998_VULN-1002_2.4.8.patch ]'
 
+# --- migration from an old patch script; Adobe's monthly file naming -------------------------
+MONTHLY=$IN/248-2026-07-001-CE.patch
+patch -p1 -s < "$MONTHLY"   # what `post-install-cmd: patch -p1 … || true` used to do
+out=$(run patches:security "$MONTHLY" --id=APSB26-900); check "migration: vendor/ patched by an old script → conflict, nothing registered" 'grep -q "patched outside composer-patches" <<<"$out" && grep -q "composer reinstall magento/module-email" <<<"$out" && ! grep -q APSB26-900 patches.json'
+rm -f vendor/bin/patch-status && composer reinstall magento/module-email -n -q
+printf "<?php return ['MAGE_MODE' => 'production'];\n" > app/etc/env.php
+out=$(CI= run patches:security "$MONTHLY" --id=APSB26-900 --dry-run); check "dry run is allowed with MAGE_MODE=production" '! grep -q "MAGE_MODE is production" <<<"$out" && grep -q "Dry run" <<<"$out"'
+rm app/etc/env.php
+out=$(run patches:security "$MONTHLY" --id=APSB26-900); check "security: compact file name (248-2026-07-001-CE) picked, patch-status left out" 'grep -q "return 100;" $DUMMY && grep -q "patch-status tool" <<<"$out" && [ ! -e vendor/bin/patch-status ]'
+out=$(run patches:remove APSB26-900); check "remove: monthly file taken out again" '! grep -q "return 100;" $DUMMY'
+
 # --- re-application safety: constants, methods, JS functions -----------------------------------
 out=$(run patches:add "$IN/const-x.patch"); check "custom: add-only constant" '[ $(count "const X" $DUMMY) -eq 1 ]'
 out=$(run patches:add "$IN/const-x.patch" --name=copy); check "custom: same change again → already applied, not duplicated" 'grep -q "already applied" <<<"$out" && [ $(count "const X" $DUMMY) -eq 1 ]'
@@ -55,6 +66,9 @@ out=$(run patches:add "$IN/broken.patch"); check "custom: lint regression → co
 out=$(run patches:add "$IN/unsupported.patch"); check "custom: file no package provides → conflict" 'grep -q "no installed package provides" <<<"$out"'
 out=$(run patches:add "$IN/catalog-helper.patch"); check "custom: new file + xml change" '[ -f vendor/magento/module-catalog/Model/Helper.php ]'
 out=$(run patches:status); check "status: everything applied" '! grep -q "not applied" <<<"$out"'
+composer config scripts.post-install-cmd 'patch -p1 -N < composer-patches/x.patch || true' && composer config extra.patches-file composer.patches.json
+out=$(run patches:status); code=$?; check "status: old patch script and the 1.x patches-file key are reported" '[ $code -eq 1 ] && grep -q "runs \`patch\`" <<<"$out" && grep -q "2.x ignores it" <<<"$out"'
+composer config --unset scripts.post-install-cmd && composer config --unset extra.patches-file
 
 # --- stored bulletin data ----------------------------------------------------------------------
 php -r '

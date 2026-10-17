@@ -7,6 +7,7 @@ namespace Brocode\MagentoPatches\Command;
 use Brocode\MagentoPatches\Patch\DiffParser;
 use Brocode\MagentoPatches\Patch\Stage;
 use Brocode\MagentoPatches\Patch\Validator;
+use Brocode\MagentoPatches\Runtime\LegacySetup;
 use Brocode\MagentoPatches\Source\QualityPatches;
 use Brocode\MagentoPatches\Store\Label;
 use Symfony\Component\Console\Input\InputInterface;
@@ -43,6 +44,15 @@ final class StatusCommand extends AbstractPatchCommand
             }
         } catch (Throwable) {
             $io->write('Quality Patches: not installed (optional)');
+        }
+
+        $legacy = LegacySetup::findings($ctx->composer->getPackage());
+        if ($legacy !== []) {
+            $io->write("\n<warning>Old patch mechanisms in composer.json</warning> (see the migration guide):");
+            foreach ($legacy as $finding) {
+                $problems++;
+                $io->write('  <error>✗</error> ' . $finding);
+            }
         }
 
         $entries = $ctx->store->entries();

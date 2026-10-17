@@ -8,6 +8,7 @@ use Brocode\MagentoPatches\Magento\MagentoVersion;
 use Brocode\MagentoPatches\Plan\Plan;
 use Brocode\MagentoPatches\Plan\Source;
 use Brocode\MagentoPatches\Runtime\Context;
+use Brocode\MagentoPatches\Runtime\LegacySetup;
 use Brocode\MagentoPatches\Source\IsolatedPatchFiles;
 use Brocode\MagentoPatches\Source\QualityPatches;
 use Brocode\MagentoPatches\Store\DownloadManifest;
@@ -45,6 +46,11 @@ abstract class AbstractPatchCommand extends BaseCommand
             if ($this->mutates($input) && !$dryRun) {
                 $this->guard($input);
                 $this->lock();
+            }
+            if ($this->mutates($input)) {
+                foreach (LegacySetup::findings($this->requireComposer()->getPackage()) as $finding) {
+                    $this->getIO()->writeError('<warning>' . $finding . '</warning>');
+                }
             }
 
             return $this->handle($input, $output);

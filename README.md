@@ -26,10 +26,14 @@ composer require brocode/magento-patches   # Composer asks once to allow the two
 | `composer patches:add <file> [--name=…] [--package=…]` | Adds your own patch the same way. |
 | `composer patches:remove <id> …` | Removes entries by id (APSB26-153, ACSD-12345, your name); for bulletins also the stored download. |
 | `composer patches:upgrade 2.4.7-p11` | Upgrades Magento and carries patches over: what the release already contains is dropped, the rest is re-validated. |
-| `composer patches:status` | Installed version, latest `-p` of your line, and a check that every entry in `patches.json` is really applied in `vendor/`. |
+| `composer patches:status` | Installed version, latest `-p` of your line, a check that every entry in `patches.json` is really applied in `vendor/`, and old patch mechanisms still in `composer.json`. |
 
 Mutating commands accept `--dry-run`, `--strict`, `--skip-unsupported`, and refuse to run when
-`MAGE_MODE=production` (`--force` overrides; `CI=true` counts as a build, not a live shop).
+`MAGE_MODE=production` (`--force` overrides; `CI=true` counts as a build, not a live shop). A
+`--dry-run` changes nothing and is allowed in production mode.
+
+Coming from patch scripts in `composer.json`, composer-patches 1.x, the QPT tool or hand-split
+files: see [MIGRATION.md](MIGRATION.md).
 
 ## Monthly security workflow
 
@@ -130,16 +134,25 @@ really installed, not what `composer.json` asks for:
 - **B2B** comes from `magento/extension-b2b` / `magento2-b2b-base`.
 - **QPT constraints** (`>=2.4.7 <2.4.7-p3`) are matched with Composer's own semver against the
   anchor package QPT names.
-- **Isolated patch files** are picked by the installed version in the file name. Adobe's monthly
-  files for the line are used only if no exact file exists, and you get a warning when you're not
-  on the latest `-p`.
+- **Isolated patch files** are picked by the installed version in the file name — dotted
+  (`VULN-39341_2.4.8-p5.patch`, `2-4-8-p5-oct-2026.zip`) or compact as in Adobe's monthly files
+  (`248p5-2026-07-001-CE.patch`, `VULN-39341_248-p5.patch`, B2B `133p18-2026-07-001-B2B.patch`).
+  Adobe's monthly-build files for the line are used only if no exact file exists, and you get a
+  warning when you're not on the latest `-p`.
+- Changes to `vendor/bin/patch-status` (Adobe's versioning tool, shipped inside the monthly files)
+  are left out with a note: no package owns `vendor/bin`, and the tool fixes nothing —
+  `patches:status` covers the same ground.
 
 ## Safety model
 
 Every file change of a patch is checked against the state it will meet, in order:
 
-1. **Reverse check.** If the exact change is already there, it's skipped. This makes re-runs and
-   fixes that upstream already contains harmless.
+1. **Reverse check.** If the exact change is already there, it's skipped — but only when
+   `composer install` will produce that state again: a registered patch touches the file, or the
+   **pristine package** (downloaded through Composer, normally from its cache) already contains the
+   change. Otherwise `vendor/` was patched behind composer-patches (an old script, composer-patches
+   1.x, a hand edit); skipping would lose the fix on the next install, so it is a conflict that names
+   the packages to reinstall.
 2. **Declarations.** If everything the change declares already exists in the file, it's skipped
    with a warning (`--strict`: conflict). If only part of it exists, it's a conflict. This catches
    an add-only hunk that would otherwise "apply" a second time somewhere else.
@@ -172,8 +185,8 @@ are kept in sync.
   checks specific bulletins.
 - Downloads behind Adobe login (Commerce ≤ 2.4.6 needs Composer keys) stay a manual step; the
   command only suggests the link.
-- Hand-edited files in `vendor/` are not detected before validation. If such an edit makes a patch
-  fit that the pristine package doesn't, the reinstall fails and the run rolls back.
+- A hand edit in `vendor/` that makes a patch *fit* (rather than already contain it) is not seen
+  before validation; the reinstall then fails and the run rolls back.
 - To change a custom patch, `patches:remove` it and add it again; the same name counts as already
   registered.
 
