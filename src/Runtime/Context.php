@@ -68,7 +68,12 @@ final class Context
         $this->info = new MagentoInfo($composer);
         $this->root = $this->info->root();
         $this->locator = new PackageLocator($this->info);
-        $this->store = new PatchesFile($this->root . '/' . self::patchesFileName($composer));
+        $patchesConfig = (array) ($composer->getPackage()->getExtra()['composer-patches'] ?? []);
+        $this->store = new PatchesFile(
+            $this->root . '/' . self::patchesFileName($composer),
+            array_map('intval', (array) ($patchesConfig['package-depths'] ?? [])),
+            (int) ($patchesConfig['default-patch-depth'] ?? 1),
+        );
         $this->lockFile = self::patchesLockFile();
         $settings = (array) ($composer->getPackage()->getExtra()['brocode-magento-patches'] ?? []);
         $this->downloads = new Downloads($this->root . '/' . trim((string) ($settings['downloads-dir'] ?? 'patches/downloads'), '/'));

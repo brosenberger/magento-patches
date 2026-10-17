@@ -177,7 +177,7 @@ final class StatusCommand extends AbstractPatchCommand
                 }
                 $ok = true;
                 foreach (array_reverse($chunks) as $chunk) {
-                    $ok = $validator->revert($chunk, $stage) && $ok;
+                    $ok = $validator->revert($chunk->atDepth($entries[$i]['depth']), $stage) && $ok;
                 }
                 $results[$i] = $ok ? 'applied' : 'missing';
             }

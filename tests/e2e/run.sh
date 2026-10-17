@@ -66,6 +66,18 @@ out=$(run patches:add "$IN/broken.patch"); check "custom: lint regression → co
 out=$(run patches:add "$IN/unsupported.patch"); check "custom: file no package provides → conflict" 'grep -q "no installed package provides" <<<"$out"'
 out=$(run patches:add "$IN/catalog-helper.patch"); check "custom: new file + xml change" '[ -f vendor/magento/module-catalog/Model/Helper.php ]'
 out=$(run patches:status); check "status: everything applied" '! grep -q "not applied" <<<"$out"'
+# --- composer-patches 1.x style patch at depth 4 ("a/vendor/<vendor>/<pkg>/…") next to managed ones ---
+sed 's/return 2;/return 22;/' $DUMMY > "$WORK/Dummy.depth4.php"
+mkdir -p legacy && { echo "diff --git a/$DUMMY b/$DUMMY"; diff -u --label "a/$DUMMY" --label "b/$DUMMY" $DUMMY "$WORK/Dummy.depth4.php"; } > legacy/depth4.patch
+php -r '$f = "patches.json"; $d = json_decode(file_get_contents($f), true); $d["patches"]["magento/module-email"]["legacy depth-4 fix"] = "legacy/depth4.patch"; file_put_contents($f, json_encode($d, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");'
+patch -p1 -s < legacy/depth4.patch   # applied by composer-patches 1.x long ago
+composer config --json extra.composer-patches.package-depths '{"magento/module-email": 4}'
+php -r 'file_put_contents($argv[2], str_replace("    public function a()", "    private const Z = 26;\n\n    public function a()", file_get_contents($argv[1])));' $DUMMY "$WORK/Dummy.constZ.php"
+{ echo "diff --git a/$DUMMY b/$DUMMY"; diff -u --label "a/$DUMMY" --label "b/$DUMMY" $DUMMY "$WORK/Dummy.constZ.php"; } > "$WORK/const-z.patch"
+out=$(run patches:add "$WORK/const-z.patch"); check "depth: managed patch added to a package-depths=4 package is pinned to depth 1, legacy one applied at 4" 'grep -q "const Z" $DUMMY && grep -q "return 22;" $DUMMY && grep -q "\"depth\": 1" patches.json'
+out=$(run patches:status); code=$?; check "status: depth-4 entry verified at its configured depth" '[ $code -eq 0 ] && ! grep -q "not applied" <<<"$out"'
+php -r '$f = "patches.json"; $d = json_decode(file_get_contents($f), true); $p = &$d["patches"]["magento/module-email"]; if (isset($p[0])) { $p = array_values(array_filter($p, fn ($e) => ($e["description"] ?? "") !== "legacy depth-4 fix")); } else { unset($p["legacy depth-4 fix"]); } file_put_contents($f, json_encode($d, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");'
+composer config --unset extra.composer-patches && rm -rf legacy && run patches:remove const-z >/dev/null
 composer config scripts.post-install-cmd 'patch -p1 -N < composer-patches/x.patch || true' && composer config extra.patches-file composer.patches.json
 out=$(run patches:status); code=$?; check "status: old patch script and the 1.x patches-file key are reported" '[ $code -eq 1 ] && grep -q "runs \`patch\`" <<<"$out" && grep -q "2.x ignores it" <<<"$out"'
 composer config --unset scripts.post-install-cmd && composer config --unset extra.patches-file

@@ -175,10 +175,21 @@ patches more strictly than 1.x, and some that "worked" break on the first instal
 
 | 1.x behaviour | 2.x | Fix |
 |---|---|---|
-| tried `-p1`, `-p0`, `-p2`, `-p4` until one fit | one depth: `-p1` unless configured | patches written as `a/vendor/<vendor>/<pkg>/…` need depth 4: `"package-depths": {"onelogin/php-saml": 4}` under `extra.composer-patches`, `"depth": 4` on the entry, or re-add it with `patches:add` (rewritten package-relative) |
+| tried `-p1`, `-p0`, `-p2`, `-p4` until one fit | one depth: `-p1` unless configured | patches written as `a/vendor/<vendor>/<pkg>/…` need depth 4. Best: `"depth": 4` on the entry (expanded format, see below) or re-add it with `patches:add` (rewritten package-relative). `"package-depths"` works too, but applies to *every* patch of that package — the plugin pins its own entries there to `"depth": 1`, other `-p1` patches of that package would break |
 | fell back to `patch` with fuzz | `git apply`, no fuzz | regenerate the patch against the installed version (seen: patches applied "with fuzz 1" for years) |
 | one file of a patch missing (e.g. a test file not in the dist) → rest still applied | whole patch fails | remove the hunks for files the package doesn't ship |
 | patch file missing → warning | install fails | remove the entry or restore the file |
+
+Expanded format with a per-entry depth:
+
+```json
+"magento/framework": [
+    {"description": "PROJ-123 cookie manager fix", "url": "composer-patches/PROJ-123.patch", "depth": 4}
+]
+```
+
+`patches:status` checks every entry at the depth composer-patches will use (entry `depth`, then
+`package-depths`, then `default-patch-depth`).
 
 Finding them before step 4: a patch that only applies with fuzz shows up as neither applied nor
 applicable in `git apply --check -R -p<depth>` against today's `vendor/`.

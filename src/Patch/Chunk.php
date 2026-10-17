@@ -76,6 +76,17 @@ final class Chunk
         return array_values(array_unique(array_filter([$this->oldPath, $this->newPath], static fn ($p) => $p !== null)));
     }
 
+    /** Paths as composer-patches sees them at this -p depth (paths here already lack the a/ b/ level). */
+    public function atDepth(int $depth): self
+    {
+        if ($depth <= 1) {
+            return $this;
+        }
+        $strip = static fn (?string $p): ?string => $p === null ? null : implode('/', array_slice(explode('/', $p), $depth - 1));
+
+        return $this->withPaths($strip($this->oldPath), $strip($this->newPath));
+    }
+
     public function withPaths(?string $old, ?string $new): self
     {
         return new self($old, $new, $this->extended, $this->hunks, $this->binary, $this->copy);

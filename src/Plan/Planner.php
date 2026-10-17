@@ -204,7 +204,7 @@ final class Planner
                 }
                 try {
                     foreach ((new DiffParser())->parse((string) file_get_contents($file)) as $registered) {
-                        array_push($files, ...$registered->paths());
+                        array_push($files, ...$registered->atDepth($entry['depth'])->paths());
                     }
                 } catch (\Throwable) {
                     // unreadable registered patch: cannot vouch for anything it may have changed

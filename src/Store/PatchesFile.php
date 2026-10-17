@@ -41,8 +41,15 @@ final class PatchesFile
     /** @var array<string, mixed> */
     private array $data;
 
-    public function __construct(public readonly string $path)
-    {
+    /**
+     * @param array<string, int> $packageDepths extra.composer-patches.package-depths
+     * @param int $defaultDepth extra.composer-patches.default-patch-depth
+     */
+    public function __construct(
+        public readonly string $path,
+        private readonly array $packageDepths = [],
+        private readonly int $defaultDepth = 1,
+    ) {
         $this->data = ['patches' => []];
         if (is_file($path)) {
             $decoded = json_decode((string) file_get_contents($path), true);
@@ -54,17 +61,23 @@ final class PatchesFile
         }
     }
 
-    /** @return list<array{package: string, label: string, url: string}> */
+    /** @return list<array{package: string, label: string, url: string, depth: int}> depth = what composer-patches will use */
     public function entries(): array
     {
         $out = [];
         foreach ($this->data['patches'] as $package => $defs) {
-            foreach ($this->normalize((array) $defs) as [$label, $url]) {
-                $out[] = ['package' => (string) $package, 'label' => $label, 'url' => $url];
+            foreach ($this->normalize((array) $defs) as [$label, $url, $depth]) {
+                $out[] = ['package' => (string) $package, 'label' => $label, 'url' => $url, 'depth' => $depth ?? $this->depthOf((string) $package)];
             }
         }
 
         return $out;
+    }
+
+    /** Depth composer-patches applies to a package's entries that don't set their own. */
+    public function depthOf(string $package): int
+    {
+        return (int) ($this->packageDepths[$package] ?? $this->defaultDepth);
     }
 
     public function has(string $package, string $label): bool
@@ -101,7 +114,17 @@ final class PatchesFile
     public function add(string $package, string $label, string $url): void
     {
         $defs = $this->data['patches'][$package] ?? [];
-        if ($this->isExpanded($defs)) {
+        if ($this->depthOf($package) !== 1) {
+            // Our patch files are package-relative (-p1). With package-depths / default-patch-depth set
+            // to something else, composer-patches would apply them at that depth and fail — pin them.
+            $defs = $this->expand($defs);
+            foreach ($defs as $i => $def) {
+                if (!isset($def['depth']) && Label::parse((string) ($def['description'] ?? '')) !== null) {
+                    $defs[$i]['depth'] = 1;
+                }
+            }
+            $defs[] = ['description' => $label, 'url' => $url, 'depth' => 1];
+        } elseif ($this->isExpanded($defs)) {
             $defs[] = ['description' => $label, 'url' => $url];
         } else {
             $defs[$label] = $url;
@@ -198,19 +221,26 @@ final class PatchesFile
         return json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . "\n";
     }
 
-    /** @return list<array{0: string, 1: string}> */
+    /** @return list<array{0: string, 1: string, 2: ?int}> label, url, explicit depth */
     private function normalize(array $defs): array
     {
         $out = [];
-        if ($this->isExpanded($defs)) {
-            foreach ($defs as $def) {
-                $out[] = [(string) ($def['description'] ?? ''), (string) ($def['url'] ?? '')];
-            }
-
-            return $out;
+        foreach ($this->expand($defs) as $def) {
+            $out[] = [(string) ($def['description'] ?? ''), (string) ($def['url'] ?? ''), isset($def['depth']) ? (int) $def['depth'] : null];
         }
+
+        return $out;
+    }
+
+    /** Compact {"description": "url"} → expanded [{"description", "url"}], order kept. */
+    private function expand(array $defs): array
+    {
+        if ($this->isExpanded($defs)) {
+            return array_values($defs);
+        }
+        $out = [];
         foreach ($defs as $label => $url) {
-            $out[] = [(string) $label, is_array($url) ? (string) ($url['url'] ?? '') : (string) $url];
+            $out[] = is_array($url) ? ['description' => (string) $label] + $url : ['description' => (string) $label, 'url' => (string) $url];
         }
 
         return $out;
