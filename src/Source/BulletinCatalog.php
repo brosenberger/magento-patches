@@ -17,6 +17,9 @@ final class BulletinCatalog
     /** True when the index was due this run (daily, or --refresh) — drives the daily KB check. */
     public bool $indexRefreshed = false;
 
+    /** @var string[] bulletins in range that are neither stored nor fetchable — their status is unknown */
+    public array $unknown = [];
+
     public function __construct(
         private readonly BulletinStore $store,
         private readonly ?BulletinRepository $remote, // null = offline
@@ -63,7 +66,10 @@ final class BulletinCatalog
             $bulletin = $this->store->get($id);
             if ($bulletin !== null) {
                 $result[] = $bulletin;
-            } elseif ($this->remote === null) {
+                continue;
+            }
+            $this->unknown[] = $id;
+            if ($this->remote === null) {
                 $this->io->writeError(sprintf('<warning>%s: not in %s (offline)</warning>', $id, basename($this->store->path)));
             }
         }

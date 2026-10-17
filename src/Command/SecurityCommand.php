@@ -394,12 +394,22 @@ HELP);
         $offline = (bool) $input->getOption('offline');
         if (!$offline && !$input->getOption('refresh') && $this->isProduction()) {
             $offline = true;
-            $io->write('<comment>MAGE_MODE is production — using stored bulletin data only (--refresh to fetch).</comment>');
+            $io->write('<comment>MAGE_MODE is production — using stored bulletin data only (--refresh --force to fetch).</comment>');
         }
         $catalog = $this->catalog($ctx, $input, $offline);
         $only = array_merge((array) $input->getOption('bulletin'), (array) $input->getOption('show'));
         $since = (int) ($input->getOption('since') ?: ($info->releaseDate()?->format('Y') ?? ((int) date('Y') - 2)));
         $bulletins = $catalog->bulletins($only, $since, (bool) $input->getOption('refresh'), (int) $input->getOption('max-age'));
+        if ($offline && $only === [] && (new BulletinStore($ctx->bulletinsFile))->indexCheckedAt() === null) {
+            // No stored index: "nothing missing" would be a false all-clear.
+            $io->writeError(sprintf(
+                '<error>No bulletin data in %s yet — cannot tell what is missing.</error> Run `composer patches:security%s` once and commit the file.',
+                $info->relative($ctx->bulletinsFile),
+                $this->isProduction() ? ' --refresh --force' : ''
+            ));
+
+            return 1;
+        }
 
         // Stored downloads: compare with Adobe — forced with --check-downloads/--refresh,
         // otherwise only a changed KB article is reported, at most once per index check.
@@ -488,12 +498,25 @@ HELP);
                 $latest
             ));
         }
-        $io->write($missing === 0
-            ? "\n<info>No missing security bulletins for the installed version.</info>"
-            : sprintf("\n<comment>%d bulletin(s) missing — apply them in the order listed.</comment>", $missing));
+        if ($catalog->unknown !== []) {
+            // Never report "nothing missing" for bulletins that could not be read.
+            $io->writeError(sprintf(
+                "\n<error>Could not check %s</error> — not fetched and not in %s. Their status is unknown; open them by hand or retry later.",
+                implode(', ', $catalog->unknown),
+                $info->relative($ctx->bulletinsFile)
+            ));
+        }
+        $io->write(match (true) {
+            $missing > 0 => sprintf("\n<comment>%d bulletin(s) missing — apply them in the order listed.</comment>", $missing),
+            $catalog->unknown === [] => "\n<info>No missing security bulletins for the installed version.</info>",
+            default => "\n<comment>No missing bulletin among those that could be checked.</comment>",
+        });
 
         if ($result !== 0) {
             return $result;
+        }
+        if ($missing === 0 && $catalog->unknown !== []) {
+            return 1;
         }
 
         return $missing === 0 ? 0 : 2;
