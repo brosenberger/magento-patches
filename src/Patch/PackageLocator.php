@@ -150,6 +150,36 @@ final class PackageLocator
         return array_values(array_unique($targets));
     }
 
+    /**
+     * Root copies a package deploys through its "map" (absolute source file => project-relative target),
+     * with the package-relative source path, so callers can tell patched files from untouched ones.
+     *
+     * @return list<array{source: string, rel: string, target: string}>
+     */
+    public function deployedFiles(string $packageName): array
+    {
+        $files = [];
+        foreach ($this->maps as $map) {
+            if ($map['name'] !== $packageName) {
+                continue;
+            }
+            $from = $map['path'] . '/' . $map['source'];
+            if (is_file($from)) {
+                $files[] = ['source' => $from, 'rel' => $map['source'], 'target' => $map['target']];
+                continue;
+            }
+            if (!is_dir($from)) {
+                continue;
+            }
+            foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($from, \FilesystemIterator::SKIP_DOTS)) as $file) {
+                $sub = substr((string) $file, strlen($from));
+                $files[] = ['source' => (string) $file, 'rel' => $map['source'] . $sub, 'target' => $map['target'] . $sub];
+            }
+        }
+
+        return $files;
+    }
+
     public function installPathOf(string $packageName): ?string
     {
         foreach ($this->installed as $pkg) {

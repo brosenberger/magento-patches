@@ -92,6 +92,10 @@ Faster, and kinder to a flaky repo.magento.com: reinstall only the packages any 
 message). Run it where a timeout can't cut it off: a reinstall that aborts half-way (a download
 error, a patch that fails) leaves the removed packages missing; `composer install` puts them back.
 
+- **Customised root files** (`pub/.htaccess` with store routing, `pub/index.php`, …): with
+  `"magento-force": "override"`, every reinstall of `magento/magento2-base` redeploys them. The
+  plugin's own runs keep your version, but a plain `composer reinstall` / `patches-repatch` /
+  deploy does not — list such files in `extra.magento-deploy-ignore`.
 - **Patch files changed since the last install?** Run `composer patches-relock` first.
   composer-patches 2.x pins every patch by content hash in `patches.lock.json` and applies the
   cached old version otherwise — a regenerated patch then "fails" although it is correct.

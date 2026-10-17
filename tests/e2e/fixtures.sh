@@ -22,6 +22,7 @@ for v in 2.4.8 2.4.8-p1; do
   date=$([ "$v" = 2.4.8 ] && echo 2025-04-08 || echo 2025-06-10)
   pkg "$d" magento/magento2-base "$v" ', "time": "'"$date"'", "extra": { "map": [["lib/web", "lib/web"]] }'
   mkdir -p "$P/$d/lib/web/mage"
+  printf 'define([], function () { return {}; });\n' > "$P/$d/lib/web/mage/other.js"
   cat > "$P/$d/lib/web/mage/menu.js" <<'EOF'
 define(['jquery'], function ($) {
     'use strict';
@@ -150,6 +151,54 @@ mkdir -p "$P/product-2.4.8" "$P/product-2.4.8-p1"
 echo '{ "name": "magento/product-community-edition", "version": "2.4.8", "type": "metapackage", "require": { "magento/magento2-base": "2.4.8", "magento/module-email": "101.2.8", "magento/module-catalog": "104.0.8" } }' > "$P/product-2.4.8/composer.json"
 echo '{ "name": "magento/product-community-edition", "version": "2.4.8-p1", "type": "metapackage", "require": { "magento/magento2-base": "2.4.8-p1", "magento/module-email": "101.2.9", "magento/module-catalog": "104.0.9" } }' > "$P/product-2.4.8-p1/composer.json"
 
+# ---------- a deployer like magento/magento-composer-installer: copies every "map" entry to the root, overwriting ----------
+mkdir -p "$P/deployer/src"
+cat > "$P/deployer/composer.json" <<'JSON'
+{ "name": "test/deployer", "version": "1.0.0", "type": "composer-plugin",
+  "require": { "composer-plugin-api": "^2.0" },
+  "autoload": { "psr-4": { "Test\\Deployer\\": "src/" } },
+  "extra": { "class": "Test\\Deployer\\Plugin" } }
+JSON
+cat > "$P/deployer/src/Plugin.php" <<'PHP'
+<?php
+namespace Test\Deployer;
+
+use Composer\Composer;
+use Composer\EventDispatcher\EventSubscriberInterface;
+use Composer\IO\IOInterface;
+use Composer\Plugin\PluginInterface;
+use Composer\Script\Event;
+use Composer\Script\ScriptEvents;
+
+final class Plugin implements PluginInterface, EventSubscriberInterface
+{
+    private Composer $composer;
+    public function activate(Composer $composer, IOInterface $io): void { $this->composer = $composer; }
+    public function deactivate(Composer $composer, IOInterface $io): void {}
+    public function uninstall(Composer $composer, IOInterface $io): void {}
+    public static function getSubscribedEvents(): array
+    {
+        return [ScriptEvents::POST_INSTALL_CMD => 'deploy', ScriptEvents::POST_UPDATE_CMD => 'deploy'];
+    }
+    public function deploy(Event $event): void
+    {
+        $im = $this->composer->getInstallationManager();
+        foreach ($this->composer->getRepositoryManager()->getLocalRepository()->getPackages() as $package) {
+            foreach ((array) ($package->getExtra()['map'] ?? []) as [$source, $target]) {
+                $from = $im->getInstallPath($package) . '/' . $source;
+                $it = is_dir($from) ? new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($from, \FilesystemIterator::SKIP_DOTS)) : [new \SplFileInfo($from)];
+                foreach ($it as $file) {
+                    $rel = is_dir($from) ? substr($file->getPathname(), strlen($from)) : '';
+                    $to = getcwd() . '/' . $target . $rel;
+                    @mkdir(dirname($to), 0777, true);
+                    copy($file->getPathname(), $to);
+                }
+            }
+        }
+    }
+}
+PHP
+
 # ---------- the shop ----------
 if [ -n "${OFFLINE_GIT:-}" ]; then
   EXTRA_REPOS='{ "type": "git", "url": "https://github.com/cweagans/composer-patches.git", "no-api": true },
@@ -169,11 +218,12 @@ cat > "$SHOP/composer.json" <<EOF
     ],
     "require": {
         "magento/product-community-edition": "2.4.8",
-        "brocode/magento-patches": "@dev"
+        "brocode/magento-patches": "@dev",
+        "test/deployer": "1.0.0"
     },
     "config": {
         "secure-http": false,
-        "allow-plugins": { "cweagans/composer-patches": true, "brocode/magento-patches": true }
+        "allow-plugins": { "cweagans/composer-patches": true, "brocode/magento-patches": true, "test/deployer": true }
     }
 }
 EOF

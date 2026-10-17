@@ -39,6 +39,13 @@ check "security: other-version file and not-installed modules left out" 'grep -q
 out=$(run patches:security "$IN/APSB26-999.zip"); check "security: second run is a no-op" 'grep -q "Nothing to do" <<<"$out" && [ $(ls patches/downloads/APSB26-999 | wc -l) -eq 1 ]'
 out=$(run patches:security "$IN/APSB26-998_VULN-1002_2.4.8.patch"); check "security: same fix in another bulletin → covered, download kept" 'grep -q "recorded as covered" <<<"$out" && [ -f patches/downloads/APSB26-998/APSB26-998_VULN-1002_2.4.8.patch ]'
 
+# --- root copies customised in the project stay as they are when their package is reinstalled ---
+printf '// project-specific\n' >> lib/web/mage/other.js
+cp vendor/magento/magento2-base/lib/web/mage/menu.js "$WORK/menu.cur.js" && sed 's/use strict/use strict"; "local/' "$WORK/menu.cur.js" > "$WORK/menu.local.js"
+{ echo "diff --git a/lib/web/mage/menu.js b/lib/web/mage/menu.js"; diff -u --label a/lib/web/mage/menu.js --label b/lib/web/mage/menu.js "$WORK/menu.cur.js" "$WORK/menu.local.js"; } > "$WORK/menu-local.patch"
+out=$(run patches:add "$WORK/menu-local.patch" --name=menu-local); check "deploy: customised root copy of an untouched file kept after reinstall" 'grep -q "project-specific" lib/web/mage/other.js && grep -q "local" lib/web/mage/menu.js'
+out=$(run patches:remove menu-local); check "deploy: … and after removing the patch again" 'grep -q "project-specific" lib/web/mage/other.js && ! grep -q "\"local" lib/web/mage/menu.js'
+
 # --- migration from an old patch script; Adobe's monthly file naming -------------------------
 MONTHLY=$IN/248-2026-07-001-CE.patch
 patch -p1 -s < "$MONTHLY"   # what `post-install-cmd: patch -p1 … || true` used to do

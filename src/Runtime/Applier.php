@@ -95,9 +95,14 @@ final class Applier
         $tx->track($this->lockFile);
 
         $deployed = $this->snapshotDeployed($tx, $touched);
+        $customized = $this->customizedRootCopies(array_keys($affected), $touched);
+        foreach (array_keys($customized) as $file) {
+            $tx->track($file);
+        }
 
         $this->composer->run(['patches-relock'], true);
         $this->reinstall(array_keys($affected));
+        $this->keepCustomized($customized);
         $this->verify($stages);
         $this->syncDeployed($tx, $deployed);
 
@@ -112,7 +117,9 @@ final class Applier
                 $this->composer->run(['install']);
             }
             $this->composer->run(['patches-relock'], true);
+            $customized = $this->customizedRootCopies($packages, []);
             $this->reinstall($packages);
+            $this->keepCustomized($customized);
             $this->io->writeError('<info>Rolled back: patches.json, patches.lock.json and vendor/ are back to the previous state.</info>');
         } catch (Throwable $e) {
             $this->io->writeError(sprintf(
@@ -120,6 +127,45 @@ final class Applier
                 '<error>Run `composer patches-relock && composer patches-repatch` manually.</error>',
                 $e->getMessage()
             ));
+        }
+    }
+
+    /**
+     * Root copies that differ from their package file and that this run does not patch — e.g. a
+     * pub/.htaccess with store routing. Magento's installer redeploys every mapped file on reinstall
+     * ("magento-force": "override"); these must come out exactly as they went in.
+     *
+     * @param string[] $packages
+     * @param array<string, array<string, true>> $touched package => package-relative files this run patches
+     * @return array<string, string> absolute root file => content before the run
+     */
+    private function customizedRootCopies(array $packages, array $touched): array
+    {
+        $kept = [];
+        foreach ($packages as $package) {
+            foreach ($this->locator->deployedFiles($package) as $file) {
+                $root = $this->root . '/' . $file['target'];
+                if (isset($touched[$package][$file['rel']]) || is_link($root) || !is_file($root)) {
+                    continue;
+                }
+                $content = (string) file_get_contents($root);
+                if ($content !== (string) file_get_contents($file['source'])) {
+                    $kept[$root] = $content;
+                }
+            }
+        }
+
+        return $kept;
+    }
+
+    /** @param array<string, string> $customized */
+    private function keepCustomized(array $customized): void
+    {
+        foreach ($customized as $file => $content) {
+            if (!is_file($file) || file_get_contents($file) !== $content) {
+                file_put_contents($file, $content);
+                $this->io->write(sprintf('  - kept your version of <info>%s</info> (redeployed by the installer)', substr($file, strlen($this->root) + 1)));
+            }
         }
     }
 
