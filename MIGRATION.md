@@ -87,6 +87,21 @@ rm -rf vendor && composer install
 This applies what composer-patches 2.x now reads (step 2) and nothing else. Expect the first
 failures here — see [D](#d-composer-patches-1x) for patches 1.x applied and 2.x rejects.
 
+Faster, and kinder to a flaky repo.magento.com: reinstall only the packages any old patch touched —
+`composer reinstall <vendor/pkg> …` (a dry run of step 5 lists the dirty ones in its conflict
+message). Run it where a timeout can't cut it off: a reinstall that aborts half-way (a download
+error, a patch that fails) leaves the removed packages missing; `composer install` puts them back.
+
+- **Patch files changed since the last install?** Run `composer patches-relock` first.
+  composer-patches 2.x pins every patch by content hash in `patches.lock.json` and applies the
+  cached old version otherwise — a regenerated patch then "fails" although it is correct.
+- **Packages installed from source** (`preferred-install: source`, git checkouts in `vendor/`):
+  an old patch there is an uncommitted change, and Composer refuses to reinstall
+  ("Source directory … has uncommitted changes"). Compare `git -C vendor/<pkg> diff` with the
+  patch, then `git -C vendor/<pkg> checkout -- .` and remove the 1.x `PATCHES.txt` marker. Private
+  repositories over SSH need the agent in the container (`ddev auth ssh`); otherwise Composer falls
+  back to the dist archive.
+
 Root copies deployed from `magento/magento2-base` (`lib/web`, `pub/errors`, `nginx.conf.sample`,
 `app/etc/di.xml`, …) that an old script patched in place are rewritten by the reinstall when
 `"magento-force": "override"` is set. Otherwise check them with `git status`.
@@ -176,7 +191,7 @@ patches more strictly than 1.x, and some that "worked" break on the first instal
 | 1.x behaviour | 2.x | Fix |
 |---|---|---|
 | tried `-p1`, `-p0`, `-p2`, `-p4` until one fit | one depth: `-p1` unless configured | patches written as `a/vendor/<vendor>/<pkg>/…` need depth 4. Best: `"depth": 4` on the entry (expanded format, see below) or re-add it with `patches:add` (rewritten package-relative). `"package-depths"` works too, but applies to *every* patch of that package — the plugin pins its own entries there to `"depth": 1`, other `-p1` patches of that package would break |
-| fell back to `patch` with fuzz | `git apply`, no fuzz | regenerate the patch against the installed version (seen: patches applied "with fuzz 1" for years) |
+| fell back to `patch` with fuzz | `git apply`, no fuzz | regenerate the patch against the installed version (seen: patches applied "with fuzz 1" for years). If no other patch touches the file, the fix is exactly `diff -u <pristine file> <today's vendor file>` — get the pristine package with Composer's download manager — then `composer patches-relock` |
 | one file of a patch missing (e.g. a test file not in the dist) → rest still applied | whole patch fails | remove the hunks for files the package doesn't ship |
 | patch file missing → warning | install fails | remove the entry or restore the file |
 
