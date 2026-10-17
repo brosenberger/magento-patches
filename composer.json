@@ -1,0 +1,38 @@
+{
+    "name": "brocode/magento-patches",
+    "description": "Composer commands to add Magento 2 security, quality and custom patches safely: per-package split, edition/version aware, idempotent, validated before anything is written. Applies via cweagans/composer-patches 2.x.",
+    "type": "composer-plugin",
+    "license": "MIT",
+    "keywords": ["magento", "magento2", "adobe-commerce", "patches", "security", "composer-plugin"],
+    "authors": [
+        {
+            "name": "Benjamin Rosenberger",
+            "homepage": "https://brocode.at"
+        }
+    ],
+    "require": {
+        "php": ">=8.1",
+        "ext-dom": "*",
+        "ext-json": "*",
+        "ext-zip": "*",
+        "composer-plugin-api": "^2.3",
+        "cweagans/composer-patches": "^2.0"
+    },
+    "require-dev": {
+        "composer/composer": "^2.3"
+    },
+    "suggest": {
+        "magento/quality-patches": "Data source for `composer patches:quality` (Adobe's Quality Patches Tool registry)."
+    },
+    "autoload": {
+        "psr-4": {
+            "Brocode\\MagentoPatches\\": "src/"
+        }
+    },
+    "extra": {
+        "class": "Brocode\\MagentoPatches\\Plugin"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}
