@@ -128,7 +128,10 @@ final class Applier
     {
         $installed = array_values(array_filter($packages, fn (string $p): bool => $this->locator->installPathOf($p) !== null));
         if ($installed !== []) {
-            $this->composer->run(array_merge(['reinstall'], $installed));
+            // Only the package files matter here; composer-patches applies through plugin events, not
+            // scripts. Project post-install scripts (copying configs, building assets) may fail or
+            // have side effects on a reinstall and would roll back a valid patch set.
+            $this->composer->run(array_merge(['reinstall', '--no-scripts'], $installed));
         }
     }
 

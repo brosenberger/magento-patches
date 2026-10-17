@@ -64,7 +64,9 @@ out=$(run patches:add "$IN/js-function-elsewhere.patch"); check "custom: same JS
 out=$(run patches:add "$IN/ambiguous.patch"); check "custom: offset with ambiguous context → conflict" 'grep -q ambiguous <<<"$out"'
 out=$(run patches:add "$IN/broken.patch"); check "custom: lint regression → conflict" 'grep -q "fails lint" <<<"$out"'
 out=$(run patches:add "$IN/unsupported.patch"); check "custom: file no package provides → conflict" 'grep -q "no installed package provides" <<<"$out"'
-out=$(run patches:add "$IN/catalog-helper.patch"); check "custom: new file + xml change" '[ -f vendor/magento/module-catalog/Model/Helper.php ]'
+composer config scripts.post-install-cmd 'false'   # a project script that fails on every install/reinstall
+out=$(run patches:add "$IN/catalog-helper.patch"); check "custom: new file + xml change, despite a failing post-install script" '[ -f vendor/magento/module-catalog/Model/Helper.php ]'
+composer config --unset scripts.post-install-cmd
 out=$(run patches:status); check "status: everything applied" '! grep -q "not applied" <<<"$out"'
 # --- composer-patches 1.x style patch at depth 4 ("a/vendor/<vendor>/<pkg>/…") next to managed ones ---
 sed 's/return 2;/return 22;/' $DUMMY > "$WORK/Dummy.depth4.php"
