@@ -126,6 +126,14 @@ final class Validator
         return Verdict::apply($notes);
     }
 
+    /** Is the exact change of this chunk already in the stage? (layer 1 alone) */
+    public function isApplied(Chunk $chunk, Stage $stage): bool
+    {
+        $stage->ensure(...$chunk->paths());
+
+        return $this->git($stage, ['--check', '-R'], $this->temp('applied', '.patch', $chunk->render()));
+    }
+
     /** Take an applied chunk back out of the stage (used to verify a whole chain in reverse order). */
     public function revert(Chunk $chunk, Stage $stage): bool
     {

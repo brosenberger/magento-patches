@@ -6,6 +6,7 @@ namespace Brocode\MagentoPatches\Runtime;
 
 use Brocode\MagentoPatches\Magento\MagentoInfo;
 use Brocode\MagentoPatches\Patch\PackageLocator;
+use Brocode\MagentoPatches\Patch\Pristine;
 use Brocode\MagentoPatches\Patch\Validator;
 use Brocode\MagentoPatches\Plan\Planner;
 use Brocode\MagentoPatches\Store\Downloads;
@@ -59,6 +60,7 @@ final class Context
             $this->root,
             'patches',
             $skipUnsupported,
+            new Pristine($composer, $this->info, $this->process, $workDir . '/pristine'),
         );
     }
 

@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Brocode\MagentoPatches\Plan;
 
 use Brocode\MagentoPatches\Patch\Chunk;
+use Brocode\MagentoPatches\Patch\DiffParser;
 use Brocode\MagentoPatches\Patch\Location;
 use Brocode\MagentoPatches\Patch\PackageLocator;
+use Brocode\MagentoPatches\Patch\Pristine;
 use Brocode\MagentoPatches\Patch\Stage;
 use Brocode\MagentoPatches\Patch\Validator;
 use Brocode\MagentoPatches\Patch\Verdict;
@@ -23,6 +25,9 @@ final class Planner
     /** @var array<string, true> */
     private array $reserved = [];
 
+    /** @var array<string, string[]> */
+    private array $registered = [];
+
     public function __construct(
         private readonly PackageLocator $locator,
         private readonly Validator $validator,
@@ -32,6 +37,7 @@ final class Planner
         private readonly string $root,
         private readonly string $patchDir = 'patches',
         private readonly bool $skipUnsupported = false,
+        private readonly ?Pristine $pristine = null,
     ) {
     }
 
@@ -39,6 +45,7 @@ final class Planner
     public function plan(array $sources, ?Plan $plan = null): Plan
     {
         $plan ??= new Plan();
+        $dirty = [];
         foreach ($sources as $source) {
             if ($source->chunks === []) {
                 $plan->conflicts[] = sprintf('%s: no file changes found in the patch', $source->name());
@@ -50,6 +57,10 @@ final class Planner
             foreach ($source->chunks as $chunk) {
                 [$location, $relChunk] = $this->locate($source, $chunk);
                 $where = sprintf('%s: %s', $source->name(), $chunk->target());
+                if ($location->status === Location::IGNORED) {
+                    $plan->note('skip', sprintf('%s — %s', $where, $location->reason));
+                    continue;
+                }
                 if ($location->status === Location::NOT_INSTALLED) {
                     $plan->note('skip', sprintf('%s — %s not installed', $where, $location->package));
                     continue;
@@ -101,6 +112,11 @@ final class Planner
                             }
                             break;
                         case Verdict::ALREADY_APPLIED:
+                            if ($source->label === null && !$this->explained($plan, $package, $chunk)) {
+                                $plan->conflicts[] = $where . ' — in vendor/, but not in the released package or a registered patch';
+                                $dirty[$package] = true;
+                                break;
+                            }
                             $plan->note('skip', $where . ($source->label !== null
                                 ? ' — contained in the installed code now, dropped'
                                 : ' — already applied'));
@@ -118,8 +134,60 @@ final class Planner
                 }
             }
         }
+        if ($dirty !== []) {
+            $plan->conflicts[] = "vendor/ was patched outside composer-patches (old patch script, cweagans 1.x, hand edit) — the next `composer install` would undo it.\n"
+                . '  Remove the old mechanism, then: composer reinstall ' . implode(' ', array_keys($dirty)) . "\n"
+                . '  and run this command again.';
+        }
 
         return $plan;
+    }
+
+    /**
+     * An "already applied" verdict is only safe to skip when `composer install` will produce that
+     * state again: a registered patch (or one planned earlier in this run) touches the file, or the
+     * pristine package already contains the change.
+     */
+    private function explained(Plan $plan, string $package, Chunk $chunk): bool
+    {
+        if ($this->pristine === null) {
+            return true;
+        }
+        $files = $this->registeredFiles($package);
+        foreach ($plan->patches as $planned) {
+            if ($planned->package === $package) {
+                array_push($files, ...$planned->files);
+            }
+        }
+        if (array_intersect($chunk->paths(), $files) !== []) {
+            return true;
+        }
+
+        return $this->validator->isApplied($chunk, $this->pristine->stage($package));
+    }
+
+    /** @return string[] package-relative files changed by the patches registered for a package */
+    private function registeredFiles(string $package): array
+    {
+        if (!isset($this->registered[$package])) {
+            $files = [];
+            foreach ($this->store->entries() as $entry) {
+                $file = $this->root . '/' . $entry['url'];
+                if ($entry['package'] !== $package || !is_file($file)) {
+                    continue;
+                }
+                try {
+                    foreach ((new DiffParser())->parse((string) file_get_contents($file)) as $registered) {
+                        array_push($files, ...$registered->paths());
+                    }
+                } catch (\Throwable) {
+                    // unreadable registered patch: cannot vouch for anything it may have changed
+                }
+            }
+            $this->registered[$package] = array_values(array_unique($files));
+        }
+
+        return $this->registered[$package];
     }
 
     /** @return array{0: Location, 1: ?Chunk} */

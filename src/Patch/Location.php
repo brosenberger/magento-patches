@@ -10,6 +10,7 @@ final class Location
     public const MAPPED = 'mapped';           // root file deployed from a package (magento2-base "map")
     public const NOT_INSTALLED = 'not-installed';
     public const UNSUPPORTED = 'unsupported';
+    public const IGNORED = 'ignored';         // known to be no part of the fix (Adobe's vendor/bin/patch-status)
 
     public function __construct(
         public readonly string $status,

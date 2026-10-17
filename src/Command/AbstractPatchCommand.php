@@ -40,7 +40,9 @@ abstract class AbstractPatchCommand extends BaseCommand
     final protected function execute(InputInterface $input, OutputInterface $output): int
     {
         try {
-            if ($this->mutates($input)) {
+            // A dry run only reads vendor/ and works in a scratch copy — safe on a production box too.
+            $dryRun = $input->hasOption('dry-run') && $input->getOption('dry-run');
+            if ($this->mutates($input) && !$dryRun) {
                 $this->guard($input);
                 $this->lock();
             }

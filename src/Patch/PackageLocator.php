@@ -65,6 +65,12 @@ final class PackageLocator
             }
         }
 
+        if ($path === $this->vendorRel . '/bin/patch-status') {
+            // Adobe's monthly security files add/update their versioning tool here. It belongs to no
+            // package (vendor/bin is generated), so composer-patches cannot apply it, and it fixes nothing.
+            return new Location(Location::IGNORED, reason: "Adobe's patch-status tool, not part of the fix (vendor/bin belongs to no package)");
+        }
+
         if (str_starts_with($path, $this->vendorRel . '/')) {
             $parts = explode('/', substr($path, strlen($this->vendorRel) + 1));
             if (count($parts) >= 3) {
