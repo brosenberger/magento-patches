@@ -108,6 +108,7 @@ composer config --unset scripts.post-install-cmd && composer config --unset extr
 
 # --- stored bulletin data ----------------------------------------------------------------------
 rm -f patches/security-bulletins.json
+out=$(run patches:security); code=$?; check "bulletins: no stored data, default run → error naming --refresh, nothing fetched" '[ $code -eq 1 ] && grep -q "No bulletin data" <<<"$out" && grep -q -- "--refresh" <<<"$out"'
 out=$(run patches:security --offline); code=$?; check "bulletins: no stored data offline → error, not a false all-clear" '[ $code -eq 1 ] && grep -q "No bulletin data" <<<"$out"'
 php -r '
 require "vendor/autoload.php";
@@ -148,7 +149,8 @@ cp "$WORK/www/v/v2-repackaged.zip" "$WORK/www/patch/2-4-8-oct-2026.zip"
 out=$(run patches:security --check-downloads); check "check-downloads: repackaged with same patch → stored file updated, no reinstall" 'grep -q "repackaged" <<<"$out" && ! grep -q "Removing magento" <<<"$out" && grep -q "$(sha $WORK/www/v/v2-repackaged.zip)" $MANIFEST'
 kb1 2026-10-16 "<p>Note: <a href=\"$BASE/kbarticles/ka-2.html\">Updated October 2026 Isolated security patch for 2.4.8</a></p>"; kb2
 cp "$WORK/www/v/v3.zip" "$WORK/www/patch/2-4-8-oct-2026-v2.zip"
-out=$(run patches:security --max-age=0); check "daily check: changed KB article is reported" 'grep -q "KB article changed" <<<"$out" && grep -q "check-downloads" <<<"$out"'
+php -r '$f = "patches/security-bulletins.json"; $d = json_decode(file_get_contents($f), true); $d["index"]["checkedAt"] = "2020-01-01T00:00:00+00:00"; file_put_contents($f, json_encode($d, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));'
+out=$(run patches:security); check "offline by default: an old index is not re-checked, KB articles are not fetched" '! grep -q "KB article changed" <<<"$out" && ! grep -q "fetched now" <<<"$out" && grep -q "(offline)" <<<"$out"'
 out=$(run patches:security --check-downloads); check "check-downloads: updated-patch article supersedes the old file" 'grep -q "superseded" <<<"$out" && grep -q "return 5;" $MAILER && [ -f patches/downloads/APSB26-995/2-4-8-oct-2026-v2.zip ] && [ ! -f patches/downloads/APSB26-995/2-4-8-oct-2026.zip ]'
 cp "$WORK/www/v/v1.zip" patches/downloads/APSB26-995/2-4-8-oct-2026-v2.zip
 out=$(run patches:sync --check); code=$?; check "sync --check: download changed in the repo → fails" '[ $code -eq 1 ] && grep -q "differs from what was registered" <<<"$out"'

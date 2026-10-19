@@ -31,18 +31,14 @@ declare(strict_types=1);
 namespace BroCode\MagentoPatches\Source;
 
 use Composer\IO\IOInterface;
-use DateTimeImmutable;
 use Throwable;
 
 /**
- * Decides what has to be fetched: the index at most every $maxAgeHours, each bulletin once.
+ * Decides what has to be fetched: the index only with --refresh (or once, when none is stored), each bulletin once.
  * Everything else comes from patches/security-bulletins.json.
  */
 final class BulletinCatalog
 {
-    /** True when the index was due this run (daily, or --refresh) — drives the daily KB check. */
-    public bool $indexRefreshed = false;
-
     /** @var string[] bulletins in range that are neither stored nor fetchable — their status is unknown */
     public array $unknown = [];
 
@@ -57,16 +53,14 @@ final class BulletinCatalog
      * @param string[] $onlyIds check just these (no index)
      * @return Bulletin[] stored bulletins in release order
      */
-    public function bulletins(array $onlyIds, int $sinceYear, bool $refresh, int $maxAgeHours): array
+    public function bulletins(array $onlyIds, int $sinceYear, bool $refresh): array
     {
         $fetched = 0;
         if ($onlyIds !== []) {
             $ids = array_map([Bulletin::class, 'normalizeId'], $onlyIds);
         } else {
-            $checked = $this->store->indexCheckedAt();
-            $stale = $checked === null || $checked < new DateTimeImmutable(sprintf('-%d hours', max(0, $maxAgeHours)));
-            if ($this->remote !== null && ($refresh || $stale)) {
-                $this->indexRefreshed = true;
+            // Online only when asked (--refresh); a run without stored index fetches it once.
+            if ($this->remote !== null && ($refresh || $this->store->indexCheckedAt() === null)) {
                 try {
                     $this->store->setIndex($this->remote->index());
                 } catch (Throwable $e) {

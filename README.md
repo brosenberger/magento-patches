@@ -16,7 +16,8 @@ composer require brocode/magento-patches   # Composer asks once to allow the two
 
 | Command | What it does |
 |---|---|
-| `composer patches:security` | Lists Adobe bulletins that affect the installed version, oldest first, with download link and file name. Exit code 2 if something is missing. |
+| `composer patches:security` | Lists Adobe bulletins that affect the installed version, oldest first, with download link and file name — from the committed bulletin data, offline. Exit code 2 if something is missing. |
+| `composer patches:security --refresh` | The online check: fetches new and revised bulletins and compares every stored download with Adobe's (`--check-downloads` does only the latter). |
 | `composer patches:security <zip\|patch\|dir\|url>` | Keeps the download in `patches/downloads/<ID>/` (sha256 + source in `manifest.json`), picks the file for your version, splits it per package, validates, registers. |
 | `composer patches:security --download=APSB26-153` | Fetches the file for your version from the bulletin's KB article (repo.magento.com, keys from `auth.json`) and adds it. |
 | `composer patches:security <file> --id=APSB26-153 --from-version=2.4.7-p10` | Backport: uses the file made for another version when yours has none (e.g. Open Source 2.4.6 gets no file from September 2026 on). Same checks, all or nothing; labelled `[backport from …]` and remembered for `sync`, `--check-downloads` and `upgrade`. |
@@ -81,7 +82,7 @@ transaction as the registration. A download can also just be committed there —
 - composer patches:sync --no-interaction           # registers + applies committed downloads
 # or, as a gate that a developer ran it locally:
 - composer patches:sync --check                    # exit 1: unregistered download or stale lock
-- composer patches:security --offline              # exit 2: committed bulletin data shows a missing fix
+- composer patches:security                        # exit 2: committed bulletin data shows a missing fix (offline)
 ```
 
 ### Replaced downloads
@@ -94,7 +95,7 @@ three ways:
 | Where the change happens | Noticed by | What happens |
 |---|---|---|
 | Adobe replaces the file behind the same URL | `--check-downloads` / `--refresh` re-downloads and compares sha256 | the new file is stored and applied |
-| Adobe publishes an "updated patch" article | the daily check sees the KB article's *Last update* change and reports it; `--check-downloads` acts | the file from the updated article supersedes the old one |
+| Adobe publishes an "updated patch" article | `--check-downloads` / `--refresh` see the KB article's *Last update* change | the file from the updated article supersedes the old one |
 | someone commits a new version into `patches/downloads/` | `patches:sync` / `patches:status` compare with the manifest | `sync` applies it; `sync --check` fails the build |
 | `patches:security <file>` with a stored name but other content | name + hash | treated as a new version (`--replace` swaps the whole set) |
 
@@ -118,10 +119,12 @@ file is used instead of the old split patches.
 `patches/security-bulletins.json` holds every bulletin parsed so far — affected versions, fixed
 versions, CVEs, download links — readable without tooling and usable offline:
 
-- The **index** page is re-checked at most every 24 hours (`--max-age=<hours>`).
-- Each **bulletin** is fetched once and then read from the file. `--refresh` re-reads the index and
-  all bulletins in range, because Adobe sometimes revises them.
-- `--offline` fetches nothing. That's the mode for CI, and it's automatic when `MAGE_MODE=production`.
+- **Offline by default.** Listing, `--show`, registering files and `patches:sync` read only this file;
+  nothing contacts Adobe unless you ask.
+- `--refresh` is the online check: it re-reads the index and all bulletins in range (Adobe sometimes
+  revises them) and compares the stored downloads. A project without any bulletin data says so
+  and points to `--refresh` instead of reporting "nothing missing".
+- `--offline` forbids network access even with `--refresh` / `--check-downloads`.
 - `composer patches:security --show=APSB26-146` prints one bulletin and what it means for the installed version.
 
 ## How the installed version is determined

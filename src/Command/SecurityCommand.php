@@ -63,20 +63,20 @@ final class SecurityCommand extends AbstractPatchCommand
             ->addOption('check-downloads', null, InputOption::VALUE_NONE, 'Re-download every stored file from its source / KB article, compare sha256, and replace what Adobe changed')
             ->addOption('bulletin', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Only check these bulletins')
             ->addOption('show', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Print the stored details of a bulletin')
-            ->addOption('offline', null, InputOption::VALUE_NONE, 'Use patches/security-bulletins.json only, fetch nothing (CI)')
+            ->addOption('offline', null, InputOption::VALUE_NONE, 'Fetch nothing, also not with --refresh / --check-downloads (the listing is offline anyway)')
             ->addOption('refresh', null, InputOption::VALUE_NONE, 'Re-read the index and all bulletins in range (Adobe sometimes revises bulletins); implies --check-downloads')
-            ->addOption('max-age', null, InputOption::VALUE_REQUIRED, 'Re-check the bulletin index when the stored one is older than this many hours', '24')
             ->addOption('since', null, InputOption::VALUE_REQUIRED, 'Check bulletins from this year on (default: release year of the installed version)')
             ->addOption('qpt-path', null, InputOption::VALUE_REQUIRED, 'Quality Patches checkout, used to know the latest -p release of your line')
             ->addSafetyOptions()
             ->setHelp(<<<'HELP'
 <info>composer patches:security</info>
   Compares Adobe's Commerce security bulletins with the version Composer installed and with
-  patches.json. Bulletin data is kept in patches/security-bulletins.json (commit it): the index
-  is re-checked at most every 24h (--max-age), each bulletin is fetched once (--refresh re-reads).
+  patches.json, using the bulletin data in patches/security-bulletins.json (commit it) — offline.
+  --refresh checks Adobe for new or revised bulletins, --check-downloads compares the stored
+  downloads with Adobe's.
   Exit code 2 when something is missing.
 
-<info>composer patches:security --offline</info>      CI: committed data only
+<info>composer patches:security --refresh</info>      online: new bulletins + stored downloads
 <info>composer patches:security --show=APSB26-146</info>  details of one bulletin
 
 <info>composer patches:security ~/Downloads/APSB26-153.zip</info>
@@ -436,31 +436,27 @@ HELP);
         $info = $ctx->info;
         $io->write(sprintf('<info>%s</info>', $info->describe()));
 
-        $offline = (bool) $input->getOption('offline');
-        if (!$offline && !$input->getOption('refresh') && $this->isProduction()) {
-            $offline = true;
-            $io->write('<comment>MAGE_MODE is production — using stored bulletin data only (--refresh --force to fetch).</comment>');
-        }
+        // Offline by default: Adobe is only contacted for --refresh (new bulletins) and --check-downloads.
+        $force = $input->getOption('check-downloads') || $input->getOption('refresh');
+        $offline = $input->getOption('offline') || !$force;
         $catalog = $this->catalog($ctx, $input, $offline);
         $only = array_merge((array) $input->getOption('bulletin'), (array) $input->getOption('show'));
         $since = (int) ($input->getOption('since') ?: ($info->releaseDate()?->format('Y') ?? ((int) date('Y') - 2)));
-        $bulletins = $catalog->bulletins($only, $since, (bool) $input->getOption('refresh'), (int) $input->getOption('max-age'));
+        $bulletins = $catalog->bulletins($only, $since, (bool) $input->getOption('refresh'));
         if ($offline && $only === [] && (new BulletinStore($ctx->bulletinsFile))->indexCheckedAt() === null) {
             // No stored index: "nothing missing" would be a false all-clear.
             $io->writeError(sprintf(
-                '<error>No bulletin data in %s yet — cannot tell what is missing.</error> Run `composer patches:security%s` once and commit the file.',
+                '<error>No bulletin data in %s yet — cannot tell what is missing.</error> Run `composer patches:security --refresh%s` once and commit the file.',
                 $info->relative($ctx->bulletinsFile),
-                $this->isProduction() ? ' --refresh --force' : ''
+                $this->isProduction() ? ' --force' : ''
             ));
 
             return 1;
         }
 
-        // Stored downloads: compare with Adobe — forced with --check-downloads/--refresh,
-        // otherwise only a changed KB article is reported, at most once per index check.
-        $force = $input->getOption('check-downloads') || $input->getOption('refresh');
+        // Stored downloads: compared with Adobe for --check-downloads / --refresh only.
         $result = 0;
-        if (!$offline && ($force || $catalog->indexRefreshed) && ($ctx->downloads->all() !== [] || $this->manifest($ctx)->ids() !== [])) {
+        if (!$offline && ($ctx->downloads->all() !== [] || $this->manifest($ctx)->ids() !== [])) {
             $store = new BulletinStore($ctx->bulletinsFile);
             $byId = [];
             foreach (array_unique(array_merge(array_keys($ctx->downloads->all()), $this->manifest($ctx)->ids())) as $id) {
