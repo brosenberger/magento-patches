@@ -119,7 +119,7 @@ out=$(run patches:security); code=$?
 check "bulletins: fresh stored index + stored bulletin → nothing fetched" '! grep -qi "could not fetch" <<<"$out" && grep -q "1 stored" <<<"$out"'
 check "bulletins: monthly bound vs. installed release date → missing (exit 2)" '[ $code -eq 2 ] && grep -q EXPLOITED <<<"$out" && grep -q ka-49999 <<<"$out"'
 php -r 'require "vendor/autoload.php"; $s = new BroCode\MagentoPatches\Source\BulletinStore("patches/security-bulletins.json"); $s->setIndex(["APSB26-146", "APSB26-147"]); $s->save();'
-out=$(run patches:security --offline); check "bulletins: a bulletin that cannot be read is reported as unknown" 'grep -q "Could not check APSB26-147" <<<"$out"'
+out=$(run patches:security --offline); check "bulletins: a bulletin that cannot be read is reported as unknown, with the way out" 'grep -q "Could not check APSB26-147" <<<"$out" && grep -q -- "--refresh" <<<"$out" && grep -q -- "--id=APSB26-147" <<<"$out" && ! grep -q "APSB26-147: not in" <<<"$out"'
 php -r 'require "vendor/autoload.php"; $s = new BroCode\MagentoPatches\Source\BulletinStore("patches/security-bulletins.json"); $s->setIndex(["APSB26-146"]); $s->save();'
 out=$(run patches:security --offline --show=APSB26-146); check "bulletins: --show from stored data" 'grep -q "affected — MISSING" <<<"$out" && grep -q "2.4.8-2026-aug and earlier" <<<"$out"'
 
@@ -151,6 +151,7 @@ kb1 2026-10-16 "<p>Note: <a href=\"$BASE/kbarticles/ka-2.html\">Updated October 
 cp "$WORK/www/v/v3.zip" "$WORK/www/patch/2-4-8-oct-2026-v2.zip"
 php -r '$f = "patches/security-bulletins.json"; $d = json_decode(file_get_contents($f), true); $d["index"]["checkedAt"] = "2020-01-01T00:00:00+00:00"; file_put_contents($f, json_encode($d, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));'
 out=$(run patches:security); check "offline by default: an old index is not re-checked, KB articles are not fetched" '! grep -q "KB article changed" <<<"$out" && ! grep -q "fetched now" <<<"$out" && grep -q "(offline)" <<<"$out"'
+check "offline listing says how to check Adobe for new patches" 'grep -q "from 2020-01-01" <<<"$out" && grep -q "composer patches:security --refresh" <<<"$out"'
 out=$(run patches:security --check-downloads); check "check-downloads: updated-patch article supersedes the old file" 'grep -q "superseded" <<<"$out" && grep -q "return 5;" $MAILER && [ -f patches/downloads/APSB26-995/2-4-8-oct-2026-v2.zip ] && [ ! -f patches/downloads/APSB26-995/2-4-8-oct-2026.zip ]'
 cp "$WORK/www/v/v1.zip" patches/downloads/APSB26-995/2-4-8-oct-2026-v2.zip
 out=$(run patches:sync --check); code=$?; check "sync --check: download changed in the repo → fails" '[ $code -eq 1 ] && grep -q "differs from what was registered" <<<"$out"'

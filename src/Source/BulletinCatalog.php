@@ -88,10 +88,7 @@ final class BulletinCatalog
                 $result[] = $bulletin;
                 continue;
             }
-            $this->unknown[] = $id;
-            if ($this->remote === null) {
-                $this->io->writeError(sprintf('<warning>%s: not in %s (offline)</warning>', $id, basename($this->store->path)));
-            }
+            $this->unknown[] = $id; // reported once, with the way out, by the caller
         }
         usort($result, static fn (Bulletin $a, Bulletin $b): int => $a->number() <=> $b->number());
 

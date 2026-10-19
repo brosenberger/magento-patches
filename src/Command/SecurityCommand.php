@@ -443,6 +443,13 @@ HELP);
         $only = array_merge((array) $input->getOption('bulletin'), (array) $input->getOption('show'));
         $since = (int) ($input->getOption('since') ?: ($info->releaseDate()?->format('Y') ?? ((int) date('Y') - 2)));
         $bulletins = $catalog->bulletins($only, $since, (bool) $input->getOption('refresh'));
+        $checkedAt = (new BulletinStore($ctx->bulletinsFile))->indexCheckedAt();
+        if ($offline && $checkedAt !== null && !$input->getOption('offline')) {
+            $io->write(sprintf(
+                "<comment>Offline: using the bulletin data from %s. Check Adobe for new patches:</comment>\n  composer patches:security --refresh",
+                $checkedAt->format('Y-m-d H:i')
+            ));
+        }
         if ($offline && $only === [] && (new BulletinStore($ctx->bulletinsFile))->indexCheckedAt() === null) {
             // No stored index: "nothing missing" would be a false all-clear.
             $io->writeError(sprintf(
@@ -541,9 +548,16 @@ HELP);
         if ($catalog->unknown !== []) {
             // Never report "nothing missing" for bulletins that could not be read.
             $io->writeError(sprintf(
-                "\n<error>Could not check %s</error> — not fetched and not in %s. Their status is unknown; open them by hand or retry later.",
+                "\n<error>Could not check %s</error> — not in %s, status unknown.\n"
+                . "  Fetch them:  composer patches:security --refresh\n"
+                . "  Adobe refuses (HTTP 403)? Open the bulletin in a browser, download the file for %s and register it:\n"
+                . "  composer patches:security <file> --id=%s\n"
+                . "  %s",
                 implode(', ', $catalog->unknown),
-                $info->relative($ctx->bulletinsFile)
+                $info->relative($ctx->bulletinsFile),
+                $info->version(),
+                $catalog->unknown[0],
+                implode("\n  ", array_map(static fn (string $id): string => sprintf(BulletinRepository::BULLETIN_URL, strtolower($id)), $catalog->unknown))
             ));
         }
         $io->write(match (true) {
