@@ -37,6 +37,7 @@ out=$(run patches:security "$IN/APSB26-999.zip"); check "security: zip applied (
 check "security: download kept in patches/downloads/APSB26-999/" '[ -f patches/downloads/APSB26-999/APSB26-999.zip ]'
 check "security: other-version file and not-installed modules left out" 'grep -q "module-staging not installed" <<<"$out" && ! grep -q "2.4.7-p10" <<<"$out"'
 out=$(run patches:security "$IN/APSB26-999.zip"); check "security: second run is a no-op" 'grep -q "Nothing to do" <<<"$out" && [ $(ls patches/downloads/APSB26-999 | wc -l) -eq 1 ]'
+out=$(run patches:security "$IN/APSB26-980.zip" --dry-run); check "security: version in a zip folder name does not select every file in it" 'grep -q "using .*248-2026-10-001-CE" <<<"$out" && ! grep -q "using .*B2B" <<<"$out"'
 out=$(run patches:security "$IN/APSB26-998_VULN-1002_2.4.8.patch"); check "security: same fix in another bulletin → covered, download kept" 'grep -q "recorded as covered" <<<"$out" && [ -f patches/downloads/APSB26-998/APSB26-998_VULN-1002_2.4.8.patch ]'
 
 # --- root copies customised in the project stay as they are when their package is reinstalled ---

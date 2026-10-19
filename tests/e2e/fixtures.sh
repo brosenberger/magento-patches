@@ -248,6 +248,11 @@ mkdir -p "$W/zip/CE" "$W/zip/EE"
 udiff vendor/magento/module-staging/Model/X.php "$W/x.php" "$W/x2.php" > "$W/zip/EE/VULN-1001_2.4.8.patch"
 echo "not a patch for this version" > "$W/zip/CE/VULN-1001_2.4.7-p10.patch"
 (cd "$W/zip" && zip -qr "$IN/APSB26-999.zip" CE EE)
+# Adobe-style zip: one folder named after the version, B2B files for other B2B versions inside
+mkdir -p "$W/zipf/2.4.8_oct_2026"
+udiff vendor/magento/module-catalog/Model/Product.php "$W/Product.php" "$W/Product.fixed.php" > "$W/zipf/2.4.8_oct_2026/248-2026-10-001-CE.patch"
+udiff vendor/magento/module-company/Model/X.php "$W/x.php" "$W/x2.php" > "$W/zipf/2.4.8_oct_2026/142p10-2026-10-001-B2B.patch"
+(cd "$W/zipf" && zip -qr "$IN/APSB26-980.zip" 2.4.8_oct_2026)
 udiff vendor/magento/module-catalog/Model/Product.php "$W/Product.php" "$W/Product.fixed.php" > "$IN/APSB26-998_VULN-1002_2.4.8.patch"
 
 # Adobe's monthly file: compact version in the name, and it ships their vendor/bin/patch-status tool

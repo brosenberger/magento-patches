@@ -91,9 +91,9 @@ final class IsolatedPatchFiles
         if ($as !== null && $as->raw !== $info->version()->raw) {
             $notes[] = sprintf('Backport: file made for %s, applied to %s. Adobe has not tested this combination — test it yourself.', $as, $info->version());
         }
-        $byPattern = static fn (string $pattern): array => array_values(array_filter(
+        $byPattern = fn (string $pattern): array => array_values(array_filter(
             $files,
-            static fn (string $f): bool => (bool) preg_match($pattern, basename($f))
+            fn (string $f): bool => (bool) preg_match($pattern, $this->ownName($f))
         ));
 
         // 1. Files for exactly the installed version.
@@ -112,7 +112,7 @@ final class IsolatedPatchFiles
 
         // 3. Files without any version in the name.
         if ($selected === []) {
-            $selected = array_values(array_filter($files, static fn (string $f): bool => !preg_match('/\d+[._-]\d+[._-]\d+/', basename($f))));
+            $selected = array_values(array_filter($files, fn (string $f): bool => !preg_match('/\d+[._-]\d+[._-]\d+/', $this->ownName($f))));
         }
 
         // B2B files for the installed B2B version.
@@ -165,6 +165,19 @@ final class IsolatedPatchFiles
         }
 
         return array_values($unique);
+    }
+
+    /**
+     * The file's own name, without the zip folders folded into it (2.4.6-p15_oct_2026__142p10-…-B2B.patch
+     * → 142p10-…-B2B.patch): Adobe names the folder after the core version, which would otherwise make
+     * every file in it — B2B files for other B2B versions too — "match".
+     */
+    private function ownName(string $file): string
+    {
+        $name = basename($file);
+        $pos = strrpos($name, '__');
+
+        return $pos === false ? $name : substr($name, $pos + 2);
     }
 
     /** Open Source files first (Adobe: "start with the CE file"), then Commerce, then B2B. */
