@@ -110,8 +110,19 @@ HELP);
         if ($files !== []) {
             return $this->add($input, $files);
         }
-        if ((array) $input->getOption('download') !== []) {
-            return $this->download($input, array_map([Bulletin::class, 'normalizeId'], (array) $input->getOption('download')));
+        $download = (array) $input->getOption('download');
+        if (array_map('strtolower', $download) === ['missing']) {
+            $ids = $this->missingDownloads($input);
+            if ($ids === []) {
+                $this->getIO()->write('<info>Nothing to download — no missing bulletin with a file for this version.</info> (composer patches:security lists them)');
+
+                return 0;
+            }
+
+            return $this->download($input, $ids, true);
+        }
+        if ($download !== []) {
+            return $this->download($input, array_map([Bulletin::class, 'normalizeId'], $download));
         }
 
         return $this->check($input);
@@ -195,20 +206,60 @@ HELP);
     }
 
     /** @param string[] $ids */
-    private function download(InputInterface $input, array $ids): int
+    /**
+     * Missing bulletins whose fix is a file for this version, in listing order — what
+     * `--download=missing` and the interactive listing apply. Read from the stored bulletin data.
+     *
+     * @return string[]
+     */
+    private function missingDownloads(InputInterface $input): array
+    {
+        $ctx = $this->context($input);
+        $catalog = $this->catalog($ctx, $input, true);
+        $since = (int) ($input->getOption('since') ?: ($ctx->info->releaseDate()?->format('Y') ?? ((int) date('Y') - 2)));
+        $advisor = new SecurityAdvisor($ctx->info, $ctx->store);
+        $downloads = $ctx->downloads->all();
+        $ids = [];
+        foreach ($catalog->bulletins([], $since, false) as $bulletin) {
+            $advice = $advisor->evaluate($bulletin);
+            if ($advice === null || $advice['action'] === 'upgrade' || isset($downloads[$bulletin->id])
+                || $ctx->store->managed(Label::SECURITY, $bulletin->id) !== [] || $ctx->store->isCovered($bulletin->id)) {
+                continue;
+            }
+            $ids[] = $bulletin->id;
+        }
+
+        return $ids;
+    }
+
+    /**
+     * @param string[] $ids
+     * @param bool $stopOnError for a batch: later monthly files build on earlier ones
+     */
+    private function download(InputInterface $input, array $ids, bool $stopOnError = false): int
     {
         $io = $this->getIO();
         $ctx = $this->context($input);
         $io->write(sprintf('<info>%s</info>', $ctx->info->describe()));
         $catalog = $this->catalog($ctx, $input, false);
         $bulletins = [];
-        foreach ($catalog->bulletins($ids, 0, false, PHP_INT_MAX) as $bulletin) {
+        foreach ($catalog->bulletins($ids, 0, false) as $bulletin) {
             $bulletins[$bulletin->id] = $bulletin;
         }
         $fetcher = $this->fetcher($ctx);
         $collector = new IsolatedPatchFiles($this->scratch('download-collect'));
         $result = 0;
-        foreach ($ids as $id) {
+        foreach ($ids as $i => $id) {
+            if ($stopOnError && $result !== 0) {
+                $io->writeError(sprintf(
+                    "<warning>Stopped before %s — later bulletins build on the earlier ones. Fix the one above, then run: composer patches:security --download=missing</warning>",
+                    implode(', ', array_slice($ids, $i))
+                ));
+                break;
+            }
+            if ($stopOnError) {
+                $io->write(sprintf("\n<info>[%d/%d] %s</info>", $i + 1, count($ids), $id));
+            }
             $bulletin = $bulletins[$id] ?? null;
             if ($bulletin === null) {
                 $io->writeError(sprintf('<error>%s</error> unknown bulletin', $id));
@@ -489,6 +540,7 @@ HELP);
         }
 
         $missing = 0;
+        $apply = [];
         foreach ($bulletins as $bulletin) {
             $id = $bulletin->id;
             $advice = $advisor->evaluate($bulletin);
@@ -533,7 +585,8 @@ HELP);
                 $advice['solution'] ? sprintf(' / %s', $advice['solution']) : '',
                 $advice['action'] === 'hotfix' ? 'hotfix: ' . $bulletin->solutionText($advice['product']) : 'isolated patch'
             ));
-            $io->write(sprintf('    then:     composer patches:security --download=%s   (or: composer patches:security <file> --id=%s)', $id, $id));
+            $io->write(sprintf('    then:     composer patches:security --download=%s', $id));
+            $apply[] = $id;
         }
 
         $latest = $this->latestRelease($ctx, $input);
@@ -561,13 +614,20 @@ HELP);
             ));
         }
         $io->write(match (true) {
-            $missing > 0 => sprintf("\n<comment>%d bulletin(s) missing — apply them in the order listed.</comment>", $missing),
+            $missing > 0 => sprintf("\n<comment>%d bulletin(s) missing — apply them in the order listed.</comment>", $missing)
+                . ($apply !== [] ? sprintf("\nApply %s in this order (download, validate, register):\n  composer patches:security --download=missing", count($apply) === 1 ? 'it' : 'all ' . count($apply)) : ''),
             $catalog->unknown === [] => "\n<info>No missing security bulletins for the installed version.</info>",
             default => "\n<comment>No missing bulletin among those that could be checked.</comment>",
         });
 
         if ($result !== 0) {
             return $result;
+        }
+        if ($apply !== [] && $io->isInteractive() && !$input->getOption('offline')
+            && $io->askConfirmation(sprintf("\n<question>Apply %s now? [Y/n]</question> ", count($apply) === 1 ? $apply[0] : 'these ' . count($apply)), true)) {
+            $this->lock();
+
+            return $this->download($input, $apply, true);
         }
         if ($missing === 0 && $catalog->unknown !== []) {
             return 1;

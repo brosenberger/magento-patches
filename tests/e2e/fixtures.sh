@@ -326,6 +326,12 @@ done
 mkdir -p "$W/z-v2r" && cp "$W/z-v2/VULN-2001_2.4.8.patch" "$W/z-v2r/" && echo "release notes" > "$W/z-v2r/README.txt"
 (cd "$W/z-v2r" && zip -qX "$WWW/v/v2-repackaged.zip" VULN-2001_2.4.8.patch README.txt)
 cp "$WWW/v/v1.zip" "$WWW/patch/2-4-8-oct-2026.zip"
+# hotfix bundle: one zip with a file per version (VULN-39341-composer-patches.zip style)
+mkdir -p "$W/hotfix/VULN_3001_composer_patches"
+printf '<?php\nclass Hotfix {}\n' > "$W/hotfix.php"
+newfile vendor/magento/module-catalog/Model/Hotfix.php "$W/hotfix.php" > "$W/hotfix/VULN_3001_composer_patches/VULN-3001_2.4.8.patch"
+echo "not for this version" > "$W/hotfix/VULN_3001_composer_patches/VULN-3001_247-p10.patch"
+(cd "$W/hotfix" && zip -qr "$WWW/patch/VULN-3001-composer-patches.zip" VULN_3001_composer_patches)
 echo "not for this version" > "$WWW/patch/2-4-7-p10-oct-2026.zip"
 # v4: a replacement that does not fit (wrong context) — must be rolled back
 mkdir -p "$W/z-v4"

@@ -138,8 +138,15 @@ $s->put($b); $s->save();' "$WORK/www/security/apsb26-995.html" "$BASE/security/a
 MAILER=vendor/magento/module-email/Model/Mailer.php
 MANIFEST=patches/downloads/manifest.json
 sha() { php -r 'echo hash_file("sha256", $argv[1]);' "$1"; }
-out=$(run patches:security --download=APSB26-995); check "download: the file for the installed version is fetched from the KB article" 'grep -q "return 30;" $MAILER && [ -f patches/downloads/APSB26-995/2-4-8-oct-2026.zip ] && [ ! -f patches/downloads/APSB26-995/2-4-7-p10-oct-2026.zip ]'
+php -r 'require "vendor/autoload.php"; $p = new BroCode\MagentoPatches\Store\PatchesFile("patches.json"); $p->markCovered("APSB26-146", "test"); file_put_contents("patches.json", $p->encode());' && composer patches-relock -q
+out=$(run patches:security); check "listing: the next step for all missing bulletins is one command" 'grep -q "APSB26-995" <<<"$out" && grep -q -- "--download=missing" <<<"$out"'
+out=$( (sleep 20; printf 'n\n') | script -qec "composer patches:security" /dev/null 2>&1); check "listing (interactive): asks to apply them, \"n\" changes nothing" 'grep -qi "apply.*now" <<<"$out" && ! grep -q "return 30;" $MAILER && [ ! -d patches/downloads/APSB26-995 ]'
+out=$(run patches:security --download=missing); check "download: the file for the installed version is fetched from the KB article" 'grep -q "return 30;" $MAILER && [ -f patches/downloads/APSB26-995/2-4-8-oct-2026.zip ] && [ ! -f patches/downloads/APSB26-995/2-4-7-p10-oct-2026.zip ]'
 check "download: sha256 + source URL recorded in the manifest" 'grep -q "\"source\": \"$BASE/patch/2-4-8-oct-2026.zip\"" $MANIFEST && grep -q "$(sha $WORK/www/v/v1.zip)" $MANIFEST'
+bulletin994
+php -r 'require "vendor/autoload.php"; $b = (new BroCode\MagentoPatches\Source\BulletinParser())->parse("APSB26-994", $argv[2], file_get_contents($argv[1])); $s = new BroCode\MagentoPatches\Source\BulletinStore("patches/security-bulletins.json"); $s->put($b); $s->save();' "$WORK/www/security/apsb26-994.html" "$BASE/security/apsb26-994.html"
+out=$(run patches:security --download=APSB26-994); check "download: hotfix without a file per version → the bundle zip, file for the installed version inside" '[ -f vendor/magento/module-catalog/Model/Hotfix.php ] && grep -q "VULN-3001-composer-patches.zip" <<<"$out"'
+out=$(run patches:remove APSB26-994)
 out=$(run patches:security --check-downloads); check "check-downloads: unchanged file → nothing happens" 'grep -q "unchanged on the server" <<<"$out" && ! grep -q "Removing magento" <<<"$out"'
 cp "$WORK/www/v/v2.zip" "$WORK/www/patch/2-4-8-oct-2026.zip"
 out=$(run patches:security --check-downloads); check "check-downloads: file replaced on the server → re-downloaded, bad change gone from vendor" 'grep -q "replaced on the server" <<<"$out" && ! grep -q "return 30;" $MAILER && grep -q "strip_tags" $MAILER && grep -q "$(sha $WORK/www/v/v2.zip)" $MANIFEST'

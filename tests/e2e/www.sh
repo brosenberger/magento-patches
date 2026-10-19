@@ -30,3 +30,20 @@ bulletin995() {
 </body></html>
 HTML
 }
+bulletin994() { # hotfix bulletin like APSB26-146: one row for both products, KB with per-version zips + a bundle
+  cat > "$WWW/security/apsb26-994.html" <<HTML
+<html><body><h1>Security update available for Adobe Commerce | APSB26-994</h1>
+<table><tr><th>Bulletin ID</th><th>Date Published</th><th>Priority</th></tr><tr><td>APSB26-994</td><td>September 7, 2026</td><td>1</td></tr></table>
+<table><tr><th>Product</th><th>Version</th><th>Platform</th></tr>
+<tr><td>Magento Open Source</td><td>2.4.8-2026-aug and earlier</td><td>All</td></tr></table>
+<table><tr><th>Product</th><th>Updated Version</th><th>Platform</th><th>Priority Rating</th><th>Installation Instructions</th></tr>
+<tr><td>Adobe Commerce and Magento Open Source</td><td>Hotfix for CVE-2026-3001</td><td>All</td><td>1</td><td><a href="$BASE/kb/announcements/commerce-apsb26-994.html">Release notes for the hotfix</a></td></tr></table>
+</body></html>
+HTML
+  mkdir -p "$WWW/kb/announcements"; cat > "$WWW/kb/announcements/commerce-apsb26-994.html" <<HTML
+<html><head><meta name="last-update" content="2026-09-07"></head><body>
+<a href="$BASE/patch/VULN-3001-247-p8-patch.zip">VULN-3001_247-p8.patch.zip</a>
+<a href="$BASE/patch/VULN-3001-composer-patches.zip">Hotfix VULN-3001-composer-patches.zip</a>
+</body></html>
+HTML
+}

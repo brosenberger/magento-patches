@@ -19,6 +19,7 @@ composer require brocode/magento-patches   # Composer asks once to allow the two
 | `composer patches:security` | Lists Adobe bulletins that affect the installed version, oldest first, with download link and file name — from the committed bulletin data, offline. Exit code 2 if something is missing. |
 | `composer patches:security --refresh` | The online check: fetches new and revised bulletins and compares every stored download with Adobe's (`--check-downloads` does only the latter). |
 | `composer patches:security <zip\|patch\|dir\|url>` | Keeps the download in `patches/downloads/<ID>/` (sha256 + source in `manifest.json`), picks the file for your version, splits it per package, validates, registers. |
+| `composer patches:security --download=missing` | Downloads, validates and registers every missing bulletin in the listed order, stopping at the first that does not fit. Run interactively, the plain listing offers the same ("Apply these 5 now? [Y/n]"). |
 | `composer patches:security --download=APSB26-153` | Fetches the file for your version from the bulletin's KB article (repo.magento.com, keys from `auth.json`) and adds it. |
 | `composer patches:security <file> --id=APSB26-153 --from-version=2.4.7-p10` | Backport: uses the file made for another version when yours has none (e.g. Open Source 2.4.6 gets no file from September 2026 on). Same checks, all or nothing; labelled `[backport from …]` and remembered for `sync`, `--check-downloads` and `upgrade`. |
 | `composer patches:security --check-downloads` | Re-downloads every stored file, compares sha256, and replaces what Adobe changed or superseded (also part of `--refresh`). |
@@ -40,7 +41,8 @@ files: see [MIGRATION.md](MIGRATION.md).
 ## Monthly security workflow
 
 ```bash
-composer patches:security                        # what is missing for this install?
+composer patches:security --refresh              # what is missing? (online: new bulletins from Adobe)
+composer patches:security --download=missing     # apply all of it, in order (or answer Y in the listing)
 #  APSB26-153  October 13, 2026, priority 2 — affects Magento Open Source core ("2.4.7-2026-sep and earlier")
 #    download: https://experienceleague.adobe.com/…/ka-49323
 #    file:     the one for 2.4.7-p10 / 2.4.7-2026-oct (isolated patch)

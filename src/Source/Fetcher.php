@@ -102,8 +102,10 @@ final class Fetcher
     {
         $articles = [];
         foreach ($urls as $url) {
-            if (!str_contains($url, '/kbarticles/')) {
-                continue; // release notes, upgrade guides
+            // KB articles (isolated patches) and KB announcements (hotfixes such as APSB26-146); release
+            // notes and upgrade guides carry no patch files.
+            if (!str_contains($url, '/kbarticles/') && !str_contains($url, '/kb/announcements/')) {
+                continue;
             }
             $article = $this->kb($url);
             $articles[$url] = $article;

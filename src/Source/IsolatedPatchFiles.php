@@ -156,8 +156,10 @@ final class IsolatedPatchFiles
         if ($b2b !== null) {
             $selected = array_merge($selected, $match($b2b->fileNamePattern()));
         }
-        if ($selected === [] && array_filter($links, static fn (array $l): bool => (bool) preg_match('/\d+[._-]\d+[._-]\d+/', $l['name'])) === []) {
-            $selected = $links;
+        if ($selected === []) {
+            // No file for this version: take the version-less bundles (a hotfix's
+            // VULN-39341-composer-patches.zip holds one file per version) — never another version's zip.
+            $selected = array_values(array_filter($links, fn (array $l): bool => !$this->namesVersion($l['name'])));
         }
         $unique = [];
         foreach ($selected as $link) {
@@ -178,6 +180,12 @@ final class IsolatedPatchFiles
         $pos = strrpos($name, '__');
 
         return $pos === false ? $name : substr($name, $pos + 2);
+    }
+
+    /** Does a file name carry a version — dotted (2.4.7-p8, 2-4-9) or compact (247-p8, 248p5)? */
+    private function namesVersion(string $name): bool
+    {
+        return (bool) preg_match('/\d+[._-]\d+[._-]\d+|(?<![0-9])\d{3}[._-]?p\d+/i', $name);
     }
 
     /** Open Source files first (Adobe: "start with the CE file"), then Commerce, then B2B. */
