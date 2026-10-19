@@ -53,7 +53,7 @@ patch -p1 -s < "$MONTHLY"   # what `post-install-cmd: patch -p1 … || true` use
 out=$(run patches:security "$MONTHLY" --id=APSB26-900); check "migration: vendor/ patched by an old script → conflict, nothing registered" 'grep -q "patched outside composer-patches" <<<"$out" && grep -q "composer reinstall magento/module-email" <<<"$out" && ! grep -q APSB26-900 patches.json'
 rm -f vendor/bin/patch-status && composer reinstall magento/module-email -n -q
 printf "<?php return ['MAGE_MODE' => 'production'];\n" > app/etc/env.php
-out=$(CI= run patches:security "$MONTHLY" --id=APSB26-900 --dry-run); check "dry run is allowed with MAGE_MODE=production" '! grep -q "MAGE_MODE is production" <<<"$out" && grep -q "Dry run" <<<"$out"'
+out=$(CI= run patches:security "$MONTHLY" --id=APSB26-900 --dry-run); check "dry run with MAGE_MODE=production in env.php" '! grep -q "MAGE_MODE" <<<"$out" && grep -q "Dry run" <<<"$out"'
 rm app/etc/env.php
 out=$(run patches:security "$MONTHLY" --id=APSB26-900); check "security: compact file name (248-2026-07-001-CE) picked, patch-status left out" 'grep -q "return 100;" $DUMMY && grep -q "patch-status tool" <<<"$out" && [ ! -e vendor/bin/patch-status ]'
 out=$(run patches:remove APSB26-900); check "remove: monthly file taken out again" '! grep -q "return 100;" $DUMMY'
@@ -172,8 +172,9 @@ out=$(run patches:add "$IN/handedit.patch"); check "rollback: failure after writ
 out=$(run patches:remove const-x); check "remove: entry gone, vendor reinstalled without it" '[ $(count "const X" $DUMMY) -eq 0 ]'
 out=$(run patches:remove APSB26-998); check "remove: covered bulletin + its download removed" '[ ! -d patches/downloads/APSB26-998 ] && ! grep -q APSB26-998 patches.json'
 printf "<?php return ['MAGE_MODE' => 'production'];\n" > app/etc/env.php
-out=$(CI= run patches:add "$IN/const-x.patch"); check "guard: refuses on MAGE_MODE=production" 'grep -q "MAGE_MODE is production" <<<"$out"'
+out=$(CI= run patches:add "$IN/const-x.patch"); check "MAGE_MODE=production in env.php does not block patch commands" '! grep -q "MAGE_MODE" <<<"$out" && [ $(count "const X" $DUMMY) -eq 1 ]'
 rm app/etc/env.php
+run patches:remove const-x >/dev/null
 
 # --- CI: a download that was only committed ------------------------------------------------------
 cp "$IN/APSB26-997_VULN-1003_2.4.8.patch" patches/downloads/

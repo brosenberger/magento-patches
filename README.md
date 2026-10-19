@@ -30,9 +30,9 @@ composer require brocode/magento-patches   # Composer asks once to allow the two
 | `composer patches:upgrade 2.4.7-p11` | Upgrades Magento and carries patches over: what the release already contains is dropped, the rest is re-validated. |
 | `composer patches:status` | Installed version, latest `-p` of your line, a check that every entry in `patches.json` is really applied in `vendor/`, and old patch mechanisms still in `composer.json`. |
 
-Mutating commands accept `--dry-run`, `--strict`, `--skip-unsupported`, and refuse to run when
-`MAGE_MODE=production` (`--force` overrides; `CI=true` counts as a build, not a live shop). A
-`--dry-run` changes nothing and is allowed in production mode.
+Mutating commands accept `--dry-run` (validate and show the result, change nothing), `--strict`
+and `--skip-unsupported`. They reinstall the affected packages — run them in development or CI, not
+on a live server; deploys only need plain `composer install`.
 
 Coming from patch scripts in `composer.json`, composer-patches 1.x, the QPT tool or hand-split
 files: see [MIGRATION.md](MIGRATION.md).

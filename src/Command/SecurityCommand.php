@@ -446,9 +446,8 @@ HELP);
         if ($offline && $only === [] && (new BulletinStore($ctx->bulletinsFile))->indexCheckedAt() === null) {
             // No stored index: "nothing missing" would be a false all-clear.
             $io->writeError(sprintf(
-                '<error>No bulletin data in %s yet — cannot tell what is missing.</error> Run `composer patches:security --refresh%s` once and commit the file.',
-                $info->relative($ctx->bulletinsFile),
-                $this->isProduction() ? ' --force' : ''
+                '<error>No bulletin data in %s yet — cannot tell what is missing.</error> Run `composer patches:security --refresh` once and commit the file.',
+                $info->relative($ctx->bulletinsFile)
             ));
 
             return 1;

@@ -126,8 +126,7 @@ Shortcut for files already sorted by bulletin: move them to `patches/downloads/<
 (`composer-patches/APSB26-73/…` → `patches/downloads/APSB26-73/…`) and run
 `composer patches:sync`.
 
-`--dry-run` shows the result first and works even with `MAGE_MODE=production`. For real runs on a
-box in production mode (a local sandbox, say) add `--force`.
+`--dry-run` shows the result first and changes nothing.
 
 ### 6. Verify and commit
 

@@ -67,10 +67,9 @@ abstract class AbstractPatchCommand extends BaseCommand
     final protected function execute(InputInterface $input, OutputInterface $output): int
     {
         try {
-            // A dry run only reads vendor/ and works in a scratch copy — safe on a production box too.
+            // A dry run only reads vendor/ and works in a scratch copy — no lock needed.
             $dryRun = $input->hasOption('dry-run') && $input->getOption('dry-run');
             if ($this->mutates($input) && !$dryRun) {
-                $this->guard($input);
                 $this->lock();
             }
             if ($this->mutates($input)) {
@@ -97,8 +96,7 @@ abstract class AbstractPatchCommand extends BaseCommand
 
         return $this
             ->addOption('strict', null, InputOption::VALUE_NONE, 'Fail instead of skipping a change whose declarations already exist elsewhere in the file')
-            ->addOption('skip-unsupported', null, InputOption::VALUE_NONE, 'Leave out changes to files no installed package provides, instead of failing')
-            ->addOption('force', null, InputOption::VALUE_NONE, 'Run even though app/etc/env.php says MAGE_MODE=production');
+            ->addOption('skip-unsupported', null, InputOption::VALUE_NONE, 'Leave out changes to files no installed package provides, instead of failing');
     }
 
     /** Scratch directory for this run, removed when the command ends. */
@@ -124,38 +122,7 @@ abstract class AbstractPatchCommand extends BaseCommand
         );
     }
 
-    protected function isProduction(): bool
-    {
-        $mode = getenv('MAGE_MODE') ?: null;
-        $envFile = getcwd() . '/app/etc/env.php';
-        if ($mode === null && is_file($envFile)) {
-            $env = (static fn (string $file) => include $file)($envFile);
-            $mode = is_array($env) ? ($env['MAGE_MODE'] ?? null) : null;
-        }
 
-        return $mode === 'production';
-    }
-
-    /**
-     * These commands reinstall packages — never on a live shop. Production gets patches
-     * through `composer install` from the committed patches.lock.json only.
-     * A CI build (CI=true) is not a live shop, even when it builds in production mode.
-     */
-    protected function guard(InputInterface $input): void
-    {
-        if (!$this->isProduction() || ($input->hasOption('force') && $input->getOption('force'))) {
-            return;
-        }
-        if (filter_var(getenv('CI') ?: 'false', FILTER_VALIDATE_BOOLEAN)) {
-            $this->getIO()->write('<comment>MAGE_MODE is production, but CI is set — treating this as a build.</comment>');
-
-            return;
-        }
-        throw new RuntimeException(
-            "MAGE_MODE is production. Run patch commands in development or CI and deploy with `composer install`\n" .
-            'from the committed patches.json / patches.lock.json. Use --force to override.'
-        );
-    }
 
     /** One run per project at a time. */
     protected function lock(): void
