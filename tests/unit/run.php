@@ -153,6 +153,23 @@ $ok($kb->related === ['https://experienceleague.adobe.com/en/docs/experience-clo
 $p = V::parse('2.4.7-p10')->fileNamePattern();
 $ok(preg_match($p, '2-4-7-p10-oct-2026.zip') === 1 && preg_match(V::parse('2.4.9')->fileNamePattern(), '2-4-9-oct-2026.zip') === 1, 'kb: repo.magento.com file names match the installed version');
 
+// --- bulletin pages on www.adobe.com/trust (div-based tables) ----------------------------------
+$trust = (new BulletinParser())->parse('APSB26-153', 'https://www.adobe.com/trust/security/products/commerce/apsb26-153.html', (string) file_get_contents(__DIR__ . '/apsb-trust-sample.html'));
+$ok($trust->date === 'October 13, 2026' && $trust->priority === '2', 'trust page: date and priority from the div table');
+$ok(isset($trust->affected['Magento Open Source']) && count($trust->affected['Magento Open Source']) === 4, 'trust page: affected versions per product');
+$ok(in_array('https://experienceleague.adobe.com/en/docs/experience-cloud-kcs/kbarticles/ka-49323', $trust->linksFor('Magento Open Source'), true), 'trust page: KB link from the solution table');
+$hotfix = (new BulletinParser())->parse('APSB26-146', 'https://www.adobe.com/trust/security/products/commerce/apsb26-146.html', '<html><body>'
+    . '<div class="table"><div><div>Product</div><div>Version</div><div>Platform</div></div><div><div>Magento Open Source</div><div><p>2.4.9-2026-aug and earlier</p></div><div>All</div></div></div>'
+    . '<div class="table left top"><div><div>Product</div><div>Updated version</div><div>Platform</div><div>Priority rating</div><div>Installation instructions</div></div>'
+    . '<div><div>Adobe Commerce and Magento Open Source</div><div>Hotfix for CVE-2026-75650</div><div>All</div><div>1</div><div><a href="https://experienceleague.adobe.com/x/commerce-apsb26-146">Release Notes</a></div></div></div></body></html>');
+$ok($hotfix->linksFor('Magento Open Source') === ['https://experienceleague.adobe.com/x/commerce-apsb26-146'] && str_contains($hotfix->solutionText('Magento Open Source'), 'Hotfix'), 'trust page: one solution row for "Adobe Commerce and Magento Open Source" applies to both');
+try {
+    (new BulletinParser())->parse('APSB26-999', 'https://www.adobe.com/x.html', '<html><body><p>CVE-2026-1 October 1, 2026</p></body></html>');
+    $ok(false, 'bulletin without affected versions → error, not "not affected"');
+} catch (RuntimeException) {
+    $ok(true, 'bulletin without affected versions → error, not "not affected"');
+}
+
 // --- patches.json formatting -----------------------------------------------------------------
 $pf = "$tmp/two-space.json";
 file_put_contents($pf, "{\n  \"patches\": {\n    \"a/b\": {\n      \"Fix\": \"x.patch\"\n    }\n  }\n}\n");

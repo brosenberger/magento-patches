@@ -424,7 +424,7 @@ HELP);
     {
         return new BulletinCatalog(
             new BulletinStore($ctx->bulletinsFile),
-            $offline ? null : new BulletinRepository($ctx->composer->getLoop()->getHttpDownloader()),
+            $offline ? null : new BulletinRepository($ctx->composer->getLoop()->getHttpDownloader(), $ctx->composer->getLoop()),
             $this->getIO(),
         );
     }
