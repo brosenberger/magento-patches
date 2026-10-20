@@ -41,6 +41,7 @@ use BroCode\MagentoPatches\Store\DownloadManifest;
 use BroCode\MagentoPatches\Store\Label;
 use BroCode\MagentoPatches\Store\Transaction;
 use Composer\Command\BaseCommand;
+use Composer\Composer;
 use Composer\Util\Filesystem;
 use RuntimeException;
 use Symfony\Component\Console\Input\InputInterface;
@@ -73,7 +74,7 @@ abstract class AbstractPatchCommand extends BaseCommand
                 $this->lock();
             }
             if ($this->mutates($input)) {
-                foreach (LegacySetup::findings($this->requireComposer()->getPackage()) as $finding) {
+                foreach (LegacySetup::findings($this->composer()->getPackage()) as $finding) {
                     $this->getIO()->writeError('<warning>' . $finding . '</warning>');
                 }
             }
@@ -99,6 +100,15 @@ abstract class AbstractPatchCommand extends BaseCommand
             ->addOption('skip-unsupported', null, InputOption::VALUE_NONE, 'Leave out changes to files no installed package provides, instead of failing');
     }
 
+    /**
+     * BaseCommand::requireComposer() only exists since Composer 2.3; Composer 2.2 LTS
+     * (still shipped in some CI images) has getComposer(true) with the same contract.
+     */
+    protected function composer(): Composer
+    {
+        return method_exists($this, 'requireComposer') ? $this->requireComposer() : $this->getComposer(true);
+    }
+
     /** Scratch directory for this run, removed when the command ends. */
     protected function scratch(string $name): string
     {
@@ -114,7 +124,7 @@ abstract class AbstractPatchCommand extends BaseCommand
         }
 
         return new Context(
-            $this->requireComposer(),
+            $this->composer(),
             $this->getIO(),
             $this->scratch('ctx-' . bin2hex(random_bytes(3))),
             $input->hasOption('strict') && (bool) $input->getOption('strict'),

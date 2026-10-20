@@ -184,7 +184,7 @@ are kept in sync.
 
 ## Requirements and notes
 
-- PHP 8.1+, Composer 2.3+, `git` (composer-patches needs it too), ext-zip, ext-dom.
+- PHP 8.1+, Composer 2.2+, `git` (composer-patches needs it too), ext-zip, ext-dom.
 - `magento/quality-patches` is only needed for `patches:quality` (or pass `--qpt-path` to a clone of
   github.com/magento/quality-patches).
 - Bulletin data comes from Adobe's public pages on helpx.adobe.com, because there is no API. If the
