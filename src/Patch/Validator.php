@@ -71,6 +71,9 @@ final class Validator
         '/^\s*(?:(?:async|static|get|set)\s+)*(?!(?:if|for|while|switch|catch|function|with|return|else)\b)[A-Za-z_$][\w$]*\s*\([^)]*\)\s*\{\s*$/',
     ];
 
+    /** Lines of a not-found hunk context shown in a conflict; the rest is counted. */
+    private const SEARCHED_LINES = 12;
+
     /** @var array<string, bool> */
     private array $tools = [];
     private int $counter = 0;
@@ -109,7 +112,7 @@ final class Validator
         // 3. Must apply; offsets only with unambiguous context.
         $stderr = '';
         if (!$this->git($stage, ['--check', '--verbose'], $patchFile, $stderr)) {
-            return Verdict::conflict('does not apply (' . $this->firstError($stderr) . ')');
+            return Verdict::conflict('does not apply' . $this->gitError($stderr));
         }
         $notes = [];
         $current = $chunk->oldPath !== null ? $stage->read($chunk->oldPath) : null;
@@ -138,7 +141,7 @@ final class Validator
         if (!$this->git($stage, [], $patchFile, $stderr)) {
             $this->restore($stage, $before);
 
-            return Verdict::conflict('apply failed (' . $this->firstError($stderr) . ')');
+            return Verdict::conflict('apply failed' . $this->gitError($stderr));
         }
         if ($chunk->newPath !== null) {
             $lint = $this->lintRegression($chunk->newPath, $stage->path($chunk->newPath), $before[$chunk->oldPath ?? ''] ?? null, $chunk->isNewFile());
@@ -369,15 +372,40 @@ final class Validator
         return $this->tools[$tool];
     }
 
-    private function firstError(string $stderr): string
+    /**
+     * git's error as " (message)". When a hunk's context is not found, git prints "while searching
+     * for:", the lines it looked for, then "patch failed: <file>:<line>" — report the position and
+     * those lines, which is what tells where the patch and the file differ.
+     */
+    private function gitError(string $stderr): string
     {
+        $errors = [];
+        $searched = null;
         foreach (preg_split('/\R/', $stderr) ?: [] as $line) {
             if (str_starts_with($line, 'error:')) {
-                return trim(substr($line, 6));
+                $message = trim(substr($line, 6));
+                if ($message === 'while searching for:') {
+                    $searched = [];
+                } else {
+                    $errors[] = $message;
+                }
+            } elseif ($searched !== null && $errors === []) {
+                $searched[] = $line;
             }
         }
+        $summary = $errors[0] ?? (trim($stderr) !== '' ? trim(strtok($stderr, "\n")) : 'unknown error');
+        while ($searched !== null && $searched !== [] && trim((string) end($searched)) === '') {
+            array_pop($searched);
+        }
+        if ($searched === null || $searched === []) {
+            return ' (' . $summary . ')';
+        }
+        $shown = array_slice($searched, 0, self::SEARCHED_LINES);
+        $more = count($searched) - count($shown);
 
-        return trim($stderr) !== '' ? trim(strtok($stderr, "\n")) : 'unknown error';
+        return sprintf(' (%s), expected these lines:', $summary)
+            . implode('', array_map(static fn (string $l): string => "\n    | " . $l, $shown))
+            . ($more > 0 ? sprintf("\n    | … %d more", $more) : '');
     }
 
     private function temp(string $prefix, string $suffix, string $content): string
