@@ -180,7 +180,7 @@ final class Planner
             return true;
         }
         $files = $this->registeredFiles($package);
-        foreach ($plan->patches as $planned) {
+        foreach ([...$plan->earlier, ...$plan->patches] as $planned) {
             if ($planned->package === $package) {
                 array_push($files, ...$planned->files);
             }

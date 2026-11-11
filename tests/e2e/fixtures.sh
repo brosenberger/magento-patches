@@ -346,3 +346,13 @@ diff --git a/vendor/magento/module-email/Model/Mailer.php b/vendor/magento/modul
      }
 PATCH
 (cd "$W/z-v4" && zip -qX "$WWW/v/v4.zip" VULN-2001_2.4.8.patch)
+# chained bulletins: APSB26-993 builds on APSB26-992 (changes a file 992 adds) and repeats 992's
+# other change, as Adobe's cumulative monthly files do
+printf '<?php\nclass Chain\n{\n    public function step()\n    {\n        return 1;\n    }\n}\n' > "$W/Chain.v1.php"
+printf '<?php\nclass Chain\n{\n    public function step()\n    {\n        return 2;\n    }\n}\n' > "$W/Chain.v2.php"
+printf '<?php\nclass ChainBase {}\n' > "$W/ChainBase.php"
+mkdir -p "$W/z-992" "$W/z-993"
+{ newfile vendor/magento/module-catalog/Model/Chain.php "$W/Chain.v1.php"; newfile vendor/magento/module-catalog/Model/ChainBase.php "$W/ChainBase.php"; } > "$W/z-992/CHAIN-1_2.4.8.patch"
+{ udiff vendor/magento/module-catalog/Model/Chain.php "$W/Chain.v1.php" "$W/Chain.v2.php"; newfile vendor/magento/module-catalog/Model/ChainBase.php "$W/ChainBase.php"; } > "$W/z-993/CHAIN-2_2.4.8.patch"
+(cd "$W/z-992" && zip -qX "$WWW/patch/2-4-8-aug-2026.zip" CHAIN-1_2.4.8.patch)
+(cd "$W/z-993" && zip -qX "$WWW/patch/2-4-8-sep-2026.zip" CHAIN-2_2.4.8.patch)

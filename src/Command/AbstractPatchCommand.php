@@ -58,6 +58,12 @@ abstract class AbstractPatchCommand extends BaseCommand
     private $lockHandle;
     private ?string $workDir = null;
 
+    /**
+     * Set while a dry run validates several bulletins in a row: nothing is written between them,
+     * so each one is checked on the stages of the one before, as a real run would meet it.
+     */
+    protected ?Plan $chain = null;
+
     abstract protected function handle(InputInterface $input, OutputInterface $output): int;
 
     protected function mutates(InputInterface $input): bool
@@ -203,6 +209,10 @@ abstract class AbstractPatchCommand extends BaseCommand
         $collector = new IsolatedPatchFiles($this->scratch('downloads'));
         $latest = $this->latestRelease($ctx, $input);
         $plan = new Plan();
+        if ($this->chain !== null) {
+            $plan->stages = $this->chain->stages;
+            $plan->earlier = [...$this->chain->earlier, ...$this->chain->patches];
+        }
         $patchSources = [];
         $writes = [];
         foreach ($byId as $id => $inputs) {
@@ -243,6 +253,9 @@ abstract class AbstractPatchCommand extends BaseCommand
             }
         }
         $plan = $ctx->planner->plan($patchSources, $plan);
+        if ($this->chain !== null) {
+            $this->chain = $plan;
+        }
 
         // Bulletins that end up without any entry are recorded, so the check stops listing them.
         $covered = false;

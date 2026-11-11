@@ -31,6 +31,7 @@ declare(strict_types=1);
 namespace BroCode\MagentoPatches\Command;
 
 use BroCode\MagentoPatches\Magento\MagentoVersion;
+use BroCode\MagentoPatches\Plan\Plan;
 use BroCode\MagentoPatches\Runtime\Context;
 use BroCode\MagentoPatches\Source\Bulletin;
 use BroCode\MagentoPatches\Source\BulletinCatalog;
@@ -249,6 +250,10 @@ HELP);
         $fetcher = $this->fetcher($ctx);
         $collector = new IsolatedPatchFiles($this->scratch('download-collect'));
         $result = 0;
+        // A dry run writes nothing between bulletins: chain them so each is validated on top of the
+        // earlier ones. After a conflict the chain holds part of that bulletin, so the run stops there.
+        $this->chain = $input->getOption('dry-run') && count($ids) > 1 ? new Plan() : null;
+        $stopOnError = $stopOnError || $this->chain !== null;
         foreach ($ids as $i => $id) {
             if ($stopOnError && $result !== 0) {
                 $io->writeError(sprintf(
@@ -294,6 +299,7 @@ HELP);
             $result = max($result, $this->addSecurity($ctx, $input, [$id => $local], true, $origins, $manifest, $this->fromVersion($input)));
             $ctx = $this->context($input);
         }
+        $this->chain = null;
 
         return $result;
     }

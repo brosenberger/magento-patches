@@ -47,3 +47,20 @@ HTML
 </body></html>
 HTML
 }
+chained() { # <id> <date published> <zip>: bulletin + KB article with one file for 2.4.8
+  local lower; lower=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')
+  cat > "$WWW/kbarticles/$lower.html" <<HTML
+<html><head><meta name="last-update" content="2026-09-01"></head><body>
+<a href="$BASE/patch/$3">$3</a>
+</body></html>
+HTML
+  cat > "$WWW/security/$lower.html" <<HTML
+<html><body><h1>Security update available for Adobe Commerce | $1</h1>
+<table><tr><th>Bulletin ID</th><th>Date Published</th><th>Priority</th></tr><tr><td>$1</td><td>$2</td><td>2</td></tr></table>
+<table><tr><th>Product</th><th>Version</th><th>Platform</th></tr>
+<tr><td>Magento Open Source</td><td>2.4.8-2026-sep and earlier</td><td>All</td></tr></table>
+<table><tr><th>Product</th><th>Updated Version</th><th>Platform</th><th>Priority Rating</th><th>Installation Instructions</th></tr>
+<tr><td>Magento Open Source</td><td>2.4.8-2026-oct</td><td>All</td><td>2</td><td><a href="$BASE/kbarticles/$lower.html">KB article</a></td></tr></table>
+</body></html>
+HTML
+}

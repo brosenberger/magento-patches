@@ -37,6 +37,9 @@ final class Plan
     /** @var PlannedPatch[] */
     public array $patches = [];
 
+    /** @var PlannedPatch[] planned by earlier steps of the same dry run; their changes are already in the stages */
+    public array $earlier = [];
+
     /** @var string[] */
     public array $conflicts = [];
 

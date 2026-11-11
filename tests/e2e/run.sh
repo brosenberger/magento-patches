@@ -171,6 +171,15 @@ cp "$WORK/www/v/v4.zip" "$WORK/www/patch/2-4-8-oct-2026-v2.zip"
 before=$(sha1sum patches.json patches.lock.json $MANIFEST patches/downloads/APSB26-995/* $MAILER)
 out=$(run patches:security --check-downloads); code=$?
 check "check-downloads: replacement that does not fit → rolled back, nothing changed" '[ $code -ne 0 ] && grep -q "Rolling back" <<<"$out" && [ "$before" = "$(sha1sum patches.json patches.lock.json $MANIFEST patches/downloads/APSB26-995/* $MAILER)" ]'
+chained APSB26-992 "August 11, 2026" 2-4-8-aug-2026.zip; chained APSB26-993 "September 8, 2026" 2-4-8-sep-2026.zip
+for id in APSB26-992 APSB26-993; do
+  lower=$(printf '%s' "$id" | tr '[:upper:]' '[:lower:]')
+  php -r 'require "vendor/autoload.php"; $b = (new BroCode\MagentoPatches\Source\BulletinParser())->parse($argv[3], $argv[2], file_get_contents($argv[1])); $s = new BroCode\MagentoPatches\Source\BulletinStore("patches/security-bulletins.json"); $s->put($b); $s->save();' "$WORK/www/security/$lower.html" "$BASE/security/$lower.html" "$id"
+done
+before=$(sha1sum patches.json patches.lock.json $MANIFEST)
+out=$(run patches:security --download=missing --dry-run)
+check "download=missing --dry-run: a bulletin that builds on an earlier one in the batch is validated on top of it" '! grep -q CONFLICT <<<"$out" && grep -q "+ magento/module-catalog .*APSB26-993" <<<"$out" && [ $(grep -c "Dry run" <<<"$out") -ge 2 ]'
+check "download=missing --dry-run: nothing written" '[ "$before" = "$(sha1sum patches.json patches.lock.json $MANIFEST)" ] && [ ! -f vendor/magento/module-catalog/Model/Chain.php ] && [ ! -d patches/downloads/APSB26-992 ]'
 kill $SERVER 2>/dev/null
 
 # --- rollback, remove, guard -----------------------------------------------------------------
