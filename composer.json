@@ -11,12 +11,12 @@
         "security",
         "composer-plugin"
     ],
-    "version": "1.2.3",
+    "version": "1.2.4",
     "authors": [
         {
             "name": "Benjamin Rosenberger",
             "email": "bensch.rosenberger@gmail.com",
-            "homepage": "https://brocode.at"
+            "homepage": "https://brocode.at/blog/magento-monthly-security-patches/"
         }
     ],
     "funding": [
