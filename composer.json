@@ -1,6 +1,7 @@
 {
     "name": "brocode/magento-patches",
     "description": "Composer commands to add Magento 2 security, quality and custom patches safely: per-package split, edition/version aware, idempotent, validated before anything is written. Applies via cweagans/composer-patches 2.x.",
+    "homepage": "https://brocode.at/blog/magento-monthly-security-patches/",
     "type": "composer-plugin",
     "license": "MIT",
     "keywords": [
@@ -11,12 +12,12 @@
         "security",
         "composer-plugin"
     ],
-    "version": "1.2.4",
+    "version": "1.2.5",
     "authors": [
         {
             "name": "Benjamin Rosenberger",
             "email": "bensch.rosenberger@gmail.com",
-            "homepage": "https://brocode.at/blog/magento-monthly-security-patches/"
+            "homepage": "https://brocode.at"
         }
     ],
     "funding": [
